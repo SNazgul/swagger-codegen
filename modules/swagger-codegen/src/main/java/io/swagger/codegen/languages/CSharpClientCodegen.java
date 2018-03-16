@@ -361,6 +361,14 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 clientPackageDir, "ExceptionFactory.cs"));
         supportingFiles.add(new SupportingFile("SwaggerDateConverter.mustache",
                 clientPackageDir, "SwaggerDateConverter.cs"));
+		
+		// ST
+		supportingFiles.add(new SupportingFile("HttpApiClient.mustache",
+                clientPackageDir, "HttpApiClient.cs"));
+        supportingFiles.add(new SupportingFile("GlobalConfiguration.mustache",
+                clientPackageDir, "GlobalConfiguration.cs"));
+        supportingFiles.add(new SupportingFile("HttpSession.mustache",
+                clientPackageDir, "HttpSession.cs"));
 
         if (NET40.equals(this.targetFramework)) {
             // .net 4.0 doesn't include ReadOnlyDictionary…
