@@ -75,6 +75,9 @@ public class CodegenParameter {
      * See http://json-schema.org/latest/json-schema-validation.html#anchor14
      */
     public Number multipleOf;
+
+    public boolean myCustomParam;
+	public String myCustomStrParam;
     
     public CodegenParameter copy() {
         CodegenParameter output = new CodegenParameter();
@@ -145,7 +148,8 @@ public class CodegenParameter {
         output.isUuid = this.isUuid;
         output.isListContainer = this.isListContainer;
         output.isMapContainer = this.isMapContainer;
-
+        output.myCustomParam = this.myCustomParam;
+		output.myCustomStrParam = this.myCustomStrParam;
         return output;
     }
 
@@ -276,6 +280,10 @@ public class CodegenParameter {
             return false;
         if (uniqueItems != that.uniqueItems)
             return false;
+        if (myCustomParam != that.myCustomParam)
+            return false;
+		if (myCustomStrParam != that.myCustomStrParam)
+            return false;
         return multipleOf != null ? multipleOf.equals(that.multipleOf) : that.multipleOf == null;
 
     }
@@ -341,6 +349,8 @@ public class CodegenParameter {
         result = 31 * result + (minItems != null ? minItems.hashCode() : 0);
         result = 31 * result + (uniqueItems ? 13:31);
         result = 31 * result + (multipleOf != null ? multipleOf.hashCode() : 0);
+        result = 31 * result + (myCustomParam ? 13:31);
+		result = 31 * result + (myCustomStrParam != null ? myCustomStrParam.hashCode() : 0);
         return result;
     }
 }

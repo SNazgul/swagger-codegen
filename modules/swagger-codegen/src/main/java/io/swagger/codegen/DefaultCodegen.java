@@ -2272,6 +2272,10 @@ public class DefaultCodegen {
         }
 
         op.bodyParam = bodyParam;
+		if (bodyParam != null)
+		{
+			op.bodyParamIsBinary = bodyParam.isBinary;
+		}
         op.httpMethod = httpMethod.toUpperCase();
 
         // move "required" parameters in front of "optional" parameters
@@ -2424,7 +2428,7 @@ public class DefaultCodegen {
             p.required = param.getRequired();
         }
         p.jsonSchema = Json.pretty(param);
-
+		
         if (System.getProperty("debugParser") != null) {
             LOGGER.info("working on Parameter " + param.getName());
         }
@@ -2450,6 +2454,7 @@ public class DefaultCodegen {
         p.vendorExtensions = param.getVendorExtensions();
 
         if (param instanceof SerializableParameter) {
+			
             SerializableParameter qp = (SerializableParameter) param;
             Property property;
             String collectionFormat = null;
@@ -2597,9 +2602,11 @@ public class DefaultCodegen {
                     prop.setRequired(bp.getRequired());
                     CodegenProperty cp = fromProperty("property", prop);
                     if (cp != null) {
+						//p.myCustomParam = true;
                         p.baseType = cp.baseType;
                         p.dataType = cp.datatype;
                         p.isPrimitiveType = cp.isPrimitiveType;
+						p.myCustomStrParam = cp.datatype;
                         p.isBinary = isDataTypeBinary(cp.datatype);
                         p.isFile = isDataTypeFile(cp.datatype);
                         if (cp.complexType != null) {
@@ -2745,7 +2752,7 @@ public class DefaultCodegen {
 
     public boolean isDataTypeBinary(String dataType) {
         if (dataType != null) {
-            return dataType.toLowerCase().startsWith("byte");
+            return dataType.toLowerCase().startsWith("byte") || dataType.startsWith("System.IO.Stream");
         } else {
             return false;
         }
