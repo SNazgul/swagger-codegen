@@ -58,6 +58,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         supportsInheritance = true;
         modelTemplateFiles.put("model.mustache", ".cs");
         apiTemplateFiles.put("api.mustache", ".cs");
+		apiTemplateFiles.put("http_api.mustache", "_http.cs");
 
         modelDocTemplateFiles.put("model_doc.mustache", ".md");
         apiDocTemplateFiles.put("api_doc.mustache", ".md");
@@ -365,10 +366,30 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
 		// ST
 		supportingFiles.add(new SupportingFile("HttpApiClient.mustache",
                 clientPackageDir, "HttpApiClient.cs"));
-        supportingFiles.add(new SupportingFile("GlobalConfiguration.mustache",
-                clientPackageDir, "GlobalConfiguration.cs"));
-        supportingFiles.add(new SupportingFile("HttpSession.mustache",
-                clientPackageDir, "HttpSession.cs"));
+        supportingFiles.add(new SupportingFile("HttpConfiguration.mustache",
+                clientPackageDir, "HttpConfiguration.cs"));
+        supportingFiles.add(new SupportingFile("IAuthService.mustache",
+                clientPackageDir, "IAuthService.cs"));
+        supportingFiles.add(new SupportingFile("HttpExceptions.mustache",
+                clientPackageDir, "HttpExceptions.cs"));
+        supportingFiles.add(new SupportingFile("IRepeatRequestStrategy.mustache",
+                clientPackageDir, "IRepeatRequestStrategy.cs"));
+        supportingFiles.add(new SupportingFile("RepeatStrategyFactory.mustache",
+                clientPackageDir, "RepeatStrategyFactory.cs"));
+        supportingFiles.add(new SupportingFile("UpdateAuthTokenStrategy.mustache",
+                clientPackageDir, "UpdateAuthTokenStrategy.cs"));
+        supportingFiles.add(new SupportingFile("RequestAfterDelayStrategy.mustache",
+                clientPackageDir, "RequestAfterDelayStrategy.cs"));
+        supportingFiles.add(new SupportingFile("IHttpReadableConfiguration.mustache",
+                clientPackageDir, "IHttpReadableConfiguration.cs"));
+        supportingFiles.add(new SupportingFile("IStreamProvider.mustache",
+                clientPackageDir, "IStreamProvider.cs"));
+        supportingFiles.add(new SupportingFile("IReadableStreamProvider.mustache",
+                clientPackageDir, "IReadableStreamProvider.cs"));
+        supportingFiles.add(new SupportingFile("HttpExceptionFactory.mustache",
+                clientPackageDir, "HttpExceptionFactory.cs"));
+                supportingFiles.add(new SupportingFile("HttpApiException.mustache",
+                clientPackageDir, "HttpApiException.cs"));
 
         if (NET40.equals(this.targetFramework)) {
             // .net 4.0 doesn't include ReadOnlyDictionary…
