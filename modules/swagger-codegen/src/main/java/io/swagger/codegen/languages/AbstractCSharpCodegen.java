@@ -337,6 +337,8 @@ public abstract class AbstractCSharpCodegen extends DefaultCodegen implements Co
                 .put("indented_8", new IndentedLambda(8, " "))
                 .put("indented_12", new IndentedLambda(12, " "))
                 .put("indented_16", new IndentedLambda(16, " "))
+				.put("add_trailing_forwardslash", new AddTrailingForwardslashLambda())
+				.put("remove_initial_forwardslash", new RemoveInitialForwardslashLambda())
                 .build();
 
         if (objs.containsKey("lambda")) {
