@@ -390,10 +390,15 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 clientPackageDir, "HttpExceptionFactory.cs"));
         supportingFiles.add(new SupportingFile("HttpApiException.mustache",
                 clientPackageDir, "HttpApiException.cs"));
+		supportingFiles.add(new SupportingFile("IHttpMessageHandlerProvider.mustache",
+                clientPackageDir, "IHttpMessageHandlerProvider.cs"));
 	    supportingFiles.add(new SupportingFile("IHttpClientPool.mustache",
                 clientPackageDir, "IHttpClientPool.cs"));
-		supportingFiles.add(new SupportingFile("OnePersistentHttpClientPool.mustache",
-                clientPackageDir, "OnePersistentHttpClientPool.cs"));
+		supportingFiles.add(new SupportingFile("NoPersistentConnectionHttpClientPool.mustache",
+                clientPackageDir, "NoPersistentConnectionHttpClientPool.cs"));
+		supportingFiles.add(new SupportingFile("LimitedPersistentConnectionHttpClientPool.mustache",
+                clientPackageDir, "LimitedPersistentConnectionHttpClientPool.cs"));
+
 
         if (NET40.equals(this.targetFramework)) {
             // .net 4.0 doesn't include ReadOnlyDictionary…
