@@ -228,4 +228,7 @@ public class CodegenConstants {
 
     public static final String STRIP_PACKAGE_NAME = "stripPackageName";
     public static final String STRIP_PACKAGE_NAME_DESC = "Whether to strip leading dot-separated packages from generated model classes";
+
+    public static final String VENDOR_EXTENSIONS_IN_SUPPORT_FILES = "VendorExtensionsInSupportFiles";
+    public static final String VENDOR_EXTENSIONS_IN_SUPPORT_FILES_DESC = "Pass vendor extensions to support files generator";
 }

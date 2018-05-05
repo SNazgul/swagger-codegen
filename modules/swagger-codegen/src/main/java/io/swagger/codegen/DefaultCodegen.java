@@ -155,6 +155,11 @@ public class DefaultCodegen {
             this.setRemoveOperationIdPrefix(Boolean.valueOf(additionalProperties
                     .get(CodegenConstants.REMOVE_OPERATION_ID_PREFIX).toString()));
         }
+
+        if(additionalProperties.containsKey(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES)){
+            System.setProperty(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES,
+                    additionalProperties.get(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES).toString());
+        }
     }
 
     // override with any special post-processing for all models
@@ -857,6 +862,10 @@ public class DefaultCodegen {
         // name formatting options
         cliOptions.add(CliOption.newBoolean(CodegenConstants.ALLOW_UNICODE_IDENTIFIERS, CodegenConstants
                 .ALLOW_UNICODE_IDENTIFIERS_DESC).defaultValue(Boolean.FALSE.toString()));
+
+        // passing vendor extensions to the supporting 'mustache' files when generating
+        cliOptions.add(CliOption.newBoolean(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES, CodegenConstants
+                .VENDOR_EXTENSIONS_IN_SUPPORT_FILES_DESC).defaultValue(Boolean.FALSE.toString()));
 
         // initialize special character mapping
         initalizeSpecialCharacterMapping();
