@@ -25,6 +25,8 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     // We should support either NETSTANDARD, PCL, or Both… but the concepts shouldn't be mixed.
     private static final String NETSTANDARD = "v5.0";
     private static final String UWP = "uwp";
+    private static final String ADDITIONAL_NAMESPACE_FOR_CLIENT = "AdditionalNamespaceForClient";
+    private static final String GENERATE_RESTSHARP_USAGE = "GenerateRestSharpUsage";
 
     // Defines the sdk option for targeted frameworks, which differs from targetFramework and targetFrameworkNuget
     private static final String MCS_NET_VERSION_KEY = "x-mcs-sdk";
@@ -57,8 +59,8 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         super();
         supportsInheritance = true;
         modelTemplateFiles.put("model.mustache", ".cs");
-        apiTemplateFiles.put("api.mustache", ".cs");
-		apiTemplateFiles.put("http_api.mustache", "_http.cs");
+        apiTemplateFiles.put("api.mustache", "_old.cs");
+        apiTemplateFiles.put("http_api.mustache", ".cs");
 
         modelDocTemplateFiles.put("model_doc.mustache", ".md");
         apiDocTemplateFiles.put("api_doc.mustache", ".md");
@@ -90,6 +92,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 CodegenConstants.DOTNET_FRAMEWORK,
                 CodegenConstants.DOTNET_FRAMEWORK_DESC
         );
+
         frameworks = new ImmutableMap.Builder<String, String>()
                 .put(NET35, ".NET Framework 3.5 compatible")
                 .put(NET40, ".NET Framework 4.0 compatible")
@@ -107,6 +110,14 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
 
         addSwitch(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES,
                 CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES_DESC,
+                Boolean.FALSE);
+
+        addOption(ADDITIONAL_NAMESPACE_FOR_CLIENT,
+                 "Additional namespace part which will be added in 'Client' namespace (convention: Title).",
+                 null);//this.additionalNamespaceForClient);
+
+        addSwitch(GENERATE_RESTSHARP_USAGE,
+                "If set to TRUE, code that uses RestSharp will be generated.",
                 Boolean.FALSE);
 
         // CLI Switches
@@ -214,6 +225,11 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
             excludeTests = convertPropertyToBooleanAndWriteBack(CodegenConstants.EXCLUDE_TESTS);
         }
 
+        Boolean generateRestSharpUsage = false;
+        if (additionalProperties.containsKey(GENERATE_RESTSHARP_USAGE)) {
+            generateRestSharpUsage = convertPropertyToBooleanAndWriteBack(GENERATE_RESTSHARP_USAGE);
+        }
+
         if (additionalProperties.containsKey(CodegenConstants.VALIDATABLE)) {
             setValidatable(convertPropertyToBooleanAndWriteBack(CodegenConstants.VALIDATABLE));
         } else {
@@ -298,6 +314,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         additionalProperties.put("clientPackage", clientPackage);
 
         additionalProperties.put(CodegenConstants.EXCLUDE_TESTS, excludeTests);
+        additionalProperties.put(GENERATE_RESTSHARP_USAGE, generateRestSharpUsage);
         additionalProperties.put(CodegenConstants.VALIDATABLE, this.validatable);
         additionalProperties.put(CodegenConstants.SUPPORTS_ASYNC, this.supportsAsync);
         additionalProperties.put("supportsUWP", this.supportsUWP);
@@ -353,21 +370,25 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         binRelativePath += "vendor";
         additionalProperties.put("binRelativePath", binRelativePath);
 
-        supportingFiles.add(new SupportingFile("IApiAccessor.mustache",
-                clientPackageDir, "IApiAccessor.cs"));
-        supportingFiles.add(new SupportingFile("Configuration.mustache",
-                clientPackageDir, "Configuration.cs"));
-        supportingFiles.add(new SupportingFile("ApiClient.mustache",
-                clientPackageDir, "ApiClient.cs"));
-        supportingFiles.add(new SupportingFile("ApiException.mustache",
-                clientPackageDir, "ApiException.cs"));
-        supportingFiles.add(new SupportingFile("ApiResponse.mustache",
-                clientPackageDir, "ApiResponse.cs"));
-        supportingFiles.add(new SupportingFile("ExceptionFactory.mustache",
-                clientPackageDir, "ExceptionFactory.cs"));
-        supportingFiles.add(new SupportingFile("SwaggerDateConverter.mustache",
-                clientPackageDir, "SwaggerDateConverter.cs"));
-		
+
+        // Only write out implementation that uses RestSharp dll if GenerateRestSharpUsage is explicitly set to true
+        if (Boolean.TRUE.equals(generateRestSharpUsage)) {
+            supportingFiles.add(new SupportingFile("IApiAccessor.mustache",
+                    clientPackageDir, "IApiAccessor.cs"));
+            supportingFiles.add(new SupportingFile("Configuration.mustache",
+                    clientPackageDir, "Configuration.cs"));
+            supportingFiles.add(new SupportingFile("ApiClient.mustache",
+                    clientPackageDir, "ApiClient.cs"));
+            supportingFiles.add(new SupportingFile("ApiException.mustache",
+                    clientPackageDir, "ApiException.cs"));
+            supportingFiles.add(new SupportingFile("ApiResponse.mustache",
+                    clientPackageDir, "ApiResponse.cs"));
+            supportingFiles.add(new SupportingFile("ExceptionFactory.mustache",
+                    clientPackageDir, "ExceptionFactory.cs"));
+            supportingFiles.add(new SupportingFile("SwaggerDateConverter.mustache",
+                    clientPackageDir, "SwaggerDateConverter.cs"));
+        }
+
 		// ST
 		supportingFiles.add(new SupportingFile("HttpApiClient.mustache",
                 clientPackageDir, "HttpApiClient.cs"));
@@ -375,8 +396,8 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 clientPackageDir, "HttpConfiguration.cs"));
         supportingFiles.add(new SupportingFile("IAuthService.mustache",
                 clientPackageDir, "IAuthService.cs"));
-        supportingFiles.add(new SupportingFile("HttpExceptions.mustache",
-                clientPackageDir, "HttpExceptions.cs"));
+        supportingFiles.add(new SupportingFile("HttpServiceException.mustache",
+                clientPackageDir, "HttpServiceException.cs"));
         supportingFiles.add(new SupportingFile("IRepeatRequestStrategy.mustache",
                 clientPackageDir, "IRepeatRequestStrategy.cs"));
         supportingFiles.add(new SupportingFile("RepeatStrategyFactory.mustache",
@@ -404,6 +425,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
 		supportingFiles.add(new SupportingFile("LimitedPersistentConnectionHttpClientPool.mustache",
                 clientPackageDir, "LimitedPersistentConnectionHttpClientPool.cs"));
 
+        //System.setProperty(CodegenConstants.MODELS) !=
 
         if (NET40.equals(this.targetFramework)) {
             // .net 4.0 doesn't include ReadOnlyDictionary…
@@ -423,10 +445,18 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
             supportingFiles.add(new SupportingFile("project.json.mustache", packageFolder + File.separator, "project.json"));
         }
 
-        supportingFiles.add(new SupportingFile("IReadableConfiguration.mustache",
-                clientPackageDir, "IReadableConfiguration.cs"));
-        supportingFiles.add(new SupportingFile("GlobalConfiguration.mustache",
-                clientPackageDir, "GlobalConfiguration.cs"));
+        if (Boolean.TRUE.equals(generateRestSharpUsage)) {
+            supportingFiles.add(new SupportingFile("IReadableConfiguration.mustache",
+                    clientPackageDir, "IReadableConfiguration.cs"));
+            
+            supportingFiles.add(new SupportingFile("GlobalConfiguration.mustache",
+                    clientPackageDir, "GlobalConfiguration.cs"));
+        }
+        else
+        {
+            supportingFiles.add(new SupportingFile("HttpGlobalConfiguration.mustache",
+                    clientPackageDir, "HttpGlobalConfiguration.cs"));
+        }
 
         // Only write out test related files if excludeTests is unset or explicitly set to false (see start of this method)
         if (Boolean.FALSE.equals(excludeTests)) {
@@ -450,6 +480,11 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
 
         if (Boolean.TRUE.equals(generatePropertyChanged)) {
             supportingFiles.add(new SupportingFile("FodyWeavers.xml", packageFolder, "FodyWeavers.xml"));
+        }
+
+        // Only write out implementation that uses RestSharp dll if GenerateRestSharpUsage is explicitly set to true
+        if (Boolean.FALSE.equals(generateRestSharpUsage)) {
+            apiTemplateFiles.remove("api.mustache");
         }
 
         supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
@@ -786,6 +821,10 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     public void setPackageName(String packageName) {
         this.packageName = packageName;
     }
+
+    //public void setAdditionalNamespaceForClient(String additionalNamespaceForClient) {
+    //    this.additionalNamespaceForClient = additionalNamespaceForClient;
+    //}
 
     public void setPackageVersion(String packageVersion) {
         this.packageVersion = packageVersion;
