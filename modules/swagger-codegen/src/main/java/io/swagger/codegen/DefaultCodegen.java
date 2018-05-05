@@ -2338,6 +2338,7 @@ public class DefaultCodegen {
         CodegenResponse r = CodegenModelFactory.newInstance(CodegenModelType.RESPONSE);
         if ("default".equals(responseCode)) {
             r.code = "0";
+            r.isCodeDefault = true;
         } else {
             r.code = responseCode;
         }

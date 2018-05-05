@@ -22,6 +22,7 @@ public class CodegenResponse {
     public Object schema;
     public String jsonSchema;
     public Map<String, Object> vendorExtensions;
+    public boolean isCodeDefault;
 
     public boolean isWildcard() {
         return "0".equals(code) || "default".equals(code);
@@ -75,6 +76,8 @@ public class CodegenResponse {
             return false;
         if (vendorExtensions != null ? !vendorExtensions.equals(that.vendorExtensions) : that.vendorExtensions != null)
             return false;
+        if (isCodeDefault != that.isCodeDefault)
+            return false;
         return jsonSchema != null ? jsonSchema.equals(that.jsonSchema) : that.jsonSchema == null;
     }
 
@@ -99,6 +102,7 @@ public class CodegenResponse {
         result = 31 * result + (schema != null ? schema.hashCode() : 0);
         result = 31 * result + (jsonSchema != null ? jsonSchema.hashCode() : 0);
         result = 31 * result + (vendorExtensions != null ? vendorExtensions.hashCode() : 0);
+        result = 31 * result + (isCodeDefault ? 13:31);
         return result;
     }
 }
