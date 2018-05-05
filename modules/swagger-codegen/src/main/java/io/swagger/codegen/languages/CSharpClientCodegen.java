@@ -104,6 +104,11 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         CliOption modelPropertyNaming = new CliOption(CodegenConstants.MODEL_PROPERTY_NAMING, CodegenConstants.MODEL_PROPERTY_NAMING_DESC);
         cliOptions.add(modelPropertyNaming.defaultValue("PascalCase"));
 
+
+        addSwitch(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES,
+                CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES_DESC,
+                Boolean.FALSE);
+
         // CLI Switches
         addSwitch(CodegenConstants.HIDE_GENERATION_TIMESTAMP,
                 CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC,
