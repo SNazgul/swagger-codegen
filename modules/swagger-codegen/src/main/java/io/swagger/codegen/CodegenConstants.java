@@ -231,4 +231,8 @@ public class CodegenConstants {
 
     public static final String VENDOR_EXTENSIONS_IN_SUPPORT_FILES = "VendorExtensionsInSupportFiles";
     public static final String VENDOR_EXTENSIONS_IN_SUPPORT_FILES_DESC = "Pass vendor extensions to support files generator";
+
+    public static final String GENERAL_CLIENT_CLASSES_NAMESPACE = "GeneralClientClassesNamespace";
+    public static final String GENERAL_CLIENT_CLASSES_NAMESPACE_DESC = "All general client classes will be generated in separated 'GenericClient' folder, all classes will be in the specified namespace.";
+
 }

@@ -39,6 +39,9 @@ public abstract class AbstractCSharpCodegen extends DefaultCodegen implements Co
 
     protected String sourceFolder = "src";
 
+    protected String generalClientClassesNamespace = null;
+    private static final String GENERAL_CLIENT_CLASSES = "generalClientClasses";
+
     // TODO: Add option for test folder output location. Nice to allow e.g. ./test instead of ./src.
     //       This would require updating relative paths (e.g. path to main project file in test project file)
     protected String testFolder = sourceFolder;
@@ -309,6 +312,16 @@ public abstract class AbstractCSharpCodegen extends DefaultCodegen implements Co
 
         // This either updates additionalProperties with the above fixes, or sets the default if the option was not specified.
         additionalProperties.put(CodegenConstants.INTERFACE_PREFIX, interfacePrefix);
+
+        // {{GeneralClientClassesNamespace}}
+        if (additionalProperties.containsKey(CodegenConstants.GENERAL_CLIENT_CLASSES_NAMESPACE)) {
+            Object value = additionalProperties.get(CodegenConstants.GENERAL_CLIENT_CLASSES_NAMESPACE);
+            if (value != null)
+                additionalProperties.put(GENERAL_CLIENT_CLASSES, Boolean.TRUE.toString());
+            setGeneralClientClassesNamespace((String) value);
+        } else {
+            additionalProperties.put(CodegenConstants.GENERAL_CLIENT_CLASSES_NAMESPACE, generalClientClassesNamespace);
+        }
 
         addMustacheLambdas(additionalProperties);
     }
@@ -922,6 +935,10 @@ public abstract class AbstractCSharpCodegen extends DefaultCodegen implements Co
 
     public void setInterfacePrefix(final String interfacePrefix) {
         this.interfacePrefix = interfacePrefix;
+    }
+
+    public void setGeneralClientClassesNamespace(String generalClientClassesNamespace) {
+        this.generalClientClassesNamespace = generalClientClassesNamespace;
     }
 
     @Override

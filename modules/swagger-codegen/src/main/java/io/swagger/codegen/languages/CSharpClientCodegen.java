@@ -36,6 +36,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     protected String localVariablePrefix = "";
     protected String apiDocPath = "docs/";
     protected String modelDocPath = "docs/";
+    protected String generalClientPackage = "GeneralClient";
 
     // Defines TargetFrameworkVersion in csproj files
     protected String targetFramework = NET45;
@@ -116,6 +117,10 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         addOption(ADDITIONAL_NAMESPACE_FOR_CLIENT,
                  "Additional namespace part which will be added in 'Client' namespace (convention: Title).",
                  null);//this.additionalNamespaceForClient);
+
+        addOption(CodegenConstants.GENERAL_CLIENT_CLASSES_NAMESPACE,
+                CodegenConstants.GENERAL_CLIENT_CLASSES_NAMESPACE_DESC,
+                null);
 
         addSwitch(GENERATE_RESTSHARP_USAGE,
                 "If set to TRUE, code that uses RestSharp will be generated.",
@@ -389,36 +394,42 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 clientPackageDir, "HttpApiClient.cs"));
         supportingFiles.add(new SupportingFile("HttpConfiguration.mustache",
                 clientPackageDir, "HttpConfiguration.cs"));
-        supportingFiles.add(new SupportingFile("IAuthService.mustache",
-                clientPackageDir, "IAuthService.cs"));
-        supportingFiles.add(new SupportingFile("HttpServiceException.mustache",
-                clientPackageDir, "HttpServiceException.cs"));
-        supportingFiles.add(new SupportingFile("IRepeatRequestStrategy.mustache",
-                clientPackageDir, "IRepeatRequestStrategy.cs"));
-        supportingFiles.add(new SupportingFile("RepeatStrategyFactory.mustache",
-                clientPackageDir, "RepeatStrategyFactory.cs"));
-        supportingFiles.add(new SupportingFile("UpdateAuthTokenStrategy.mustache",
-                clientPackageDir, "UpdateAuthTokenStrategy.cs"));
-        supportingFiles.add(new SupportingFile("RequestAfterDelayStrategy.mustache",
-                clientPackageDir, "RequestAfterDelayStrategy.cs"));
         supportingFiles.add(new SupportingFile("IHttpReadableConfiguration.mustache",
                 clientPackageDir, "IHttpReadableConfiguration.cs"));
+
+        String generalClientPackageDir = clientPackageDir;
+        if (generalClientClassesNamespace != null)
+        {
+            generalClientPackageDir = packageFolder + File.separator + generalClientPackage;
+        }
+        supportingFiles.add(new SupportingFile("IAuthService.mustache",
+                generalClientPackageDir, "IAuthService.cs"));
+        supportingFiles.add(new SupportingFile("HttpServiceException.mustache",
+                generalClientPackageDir, "HttpServiceException.cs"));
+        supportingFiles.add(new SupportingFile("IRepeatRequestStrategy.mustache",
+                generalClientPackageDir, "IRepeatRequestStrategy.cs"));
+        supportingFiles.add(new SupportingFile("RepeatRequestStrategyFactory.mustache",
+                generalClientPackageDir, "RepeatStrategyFactory.cs"));
+        supportingFiles.add(new SupportingFile("UpdateOAuthTokenStrategy.mustache",
+                generalClientPackageDir, "UpdateOAuthTokenStrategy.cs"));
+        supportingFiles.add(new SupportingFile("RepeatRequestAfterDelayStrategy.mustache",
+                generalClientPackageDir, "RepeatRequestAfterDelayStrategy.cs"));
         supportingFiles.add(new SupportingFile("IStreamProvider.mustache",
-                clientPackageDir, "IStreamProvider.cs"));
+                generalClientPackageDir, "IStreamProvider.cs"));
         supportingFiles.add(new SupportingFile("IReadableStreamProvider.mustache",
-                clientPackageDir, "IReadableStreamProvider.cs"));
+                generalClientPackageDir, "IReadableStreamProvider.cs"));
         supportingFiles.add(new SupportingFile("HttpExceptionFactory.mustache",
-                clientPackageDir, "HttpExceptionFactory.cs"));
+                generalClientPackageDir, "HttpExceptionFactory.cs"));
         supportingFiles.add(new SupportingFile("HttpApiException.mustache",
-                clientPackageDir, "HttpApiException.cs"));
+                generalClientPackageDir, "HttpApiException.cs"));
 		supportingFiles.add(new SupportingFile("IHttpMessageHandlerProvider.mustache",
-                clientPackageDir, "IHttpMessageHandlerProvider.cs"));
+                generalClientPackageDir, "IHttpMessageHandlerProvider.cs"));
 	    supportingFiles.add(new SupportingFile("IHttpClientPool.mustache",
-                clientPackageDir, "IHttpClientPool.cs"));
+                generalClientPackageDir, "IHttpClientPool.cs"));
 		supportingFiles.add(new SupportingFile("NoPersistentConnectionHttpClientPool.mustache",
-                clientPackageDir, "NoPersistentConnectionHttpClientPool.cs"));
+                generalClientPackageDir, "NoPersistentConnectionHttpClientPool.cs"));
 		supportingFiles.add(new SupportingFile("LimitedPersistentConnectionHttpClientPool.mustache",
-                clientPackageDir, "LimitedPersistentConnectionHttpClientPool.cs"));
+                generalClientPackageDir, "LimitedPersistentConnectionHttpClientPool.cs"));
 
         //System.setProperty(CodegenConstants.MODELS) !=
 
@@ -459,7 +470,12 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
             supportingFiles.add(new SupportingFile("mono_nunit_test.mustache", "", "mono_nunit_test.sh"));
 
             modelTestTemplateFiles.put("model_test.mustache", ".cs");
-            apiTestTemplateFiles.put("api_test.mustache", ".cs");
+            // Only write out implementation that uses RestSharp dll if GenerateRestSharpUsage is explicitly set to true
+            if (Boolean.TRUE.equals(generateRestSharpUsage)) {
+                apiTestTemplateFiles.put("api_test.mustache", "_old.cs");
+            } else {
+                apiTestTemplateFiles.put("http_api_test.mustache", ".cs");
+            }
 
             if (Boolean.FALSE.equals(this.netCoreProjectFileFlag)) {
                 supportingFiles.add(new SupportingFile("packages_test.config.mustache", testPackageFolder + File.separator, "packages.config"));
