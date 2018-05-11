@@ -1,0 +1,76 @@
+{{>partial_header}}
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+namespace  {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    class RepeatRequestAfterDelayStrategy : IRepeatRequestStrategy
+    {
+        int _delayInMilisec;
+        Func<Task> _prepareBeforeRetry;
+        readonly int _repeatCount;
+        readonly int _increasingDelay;
+        int _currentTry;
+
+        public RepeatRequestAfterDelayStrategy(int initialDelayInMilisec, Func<Task> prepareBeforeRetry, int repeatCount = 4, int increasingDelay = 0)
+        {
+            _delayInMilisec = initialDelayInMilisec;
+            _prepareBeforeRetry = prepareBeforeRetry;
+            _repeatCount = repeatCount;
+            _increasingDelay = increasingDelay;
+        }
+
+        public bool CanRequestBeRepeated(HttpResponseMessage respMsg)
+        {
+            return _currentTry < _repeatCount;
+        }
+
+        public async Task PrepareBeforeRepeating()
+        {
+            ++_currentTry;
+            await Task.Delay(_delayInMilisec);
+            if (_increasingDelay > 0)
+            {
+                _delayInMilisec = (int)(_delayInMilisec * (1 + (double)_increasingDelay/100));
+            }
+            
+            if (_prepareBeforeRetry != null)
+                await _prepareBeforeRetry.Invoke();
+        }
+
+        bool IRepeatRequestStrategy.DoesCodeRelateToStrategy(HttpStatusCode statusCode)
+        {
+            return DoesCodeRelateToStrategy(statusCode);
+        }
+
+        public static bool DoesCodeRelateToStrategy(HttpStatusCode statusCode)
+        {
+            return  statusCode == HttpStatusCode.NotImplemented ||          // 501
+                    statusCode == HttpStatusCode.ServiceUnavailable ||      // 503
+                    statusCode == HttpStatusCode.BadGateway ||              // 502
+                    statusCode == HttpStatusCode.GatewayTimeout;          // 504                
+        }
+
+        public static RepeatRequestAfterDelayStrategy CreateInstanceForResponce(HttpResponseMessage respMsg, Func<Task> prepareBeforeRetry)
+        {
+            int delayBeforeFirst = 0;
+
+            switch(respMsg.StatusCode)
+            {
+                case HttpStatusCode.NotImplemented:
+                case HttpStatusCode.ServiceUnavailable:
+                    delayBeforeFirst = 200;
+                    break;
+
+                case HttpStatusCode.BadGateway:
+                case HttpStatusCode.GatewayTimeout:
+                    delayBeforeFirst = 500;
+                    break;
+            }
+
+            return new RepeatRequestAfterDelayStrategy(delayBeforeFirst, prepareBeforeRetry);
+        }
+    }
+}

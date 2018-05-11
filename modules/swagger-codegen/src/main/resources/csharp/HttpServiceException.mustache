@@ -1,0 +1,16 @@
+{{! {{>partial_header}}
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    /// <summary>
+    /// Represents the network subsystem exception
+    /// </summary>
+    public class HttpServiceException : System.Exception
+    {
+        public HttpServiceException(System.Exception exception)
+            : base(exception?.Message ?? "Rest service provider throws an exception.", exception)
+        {
+        }
+    }
+}

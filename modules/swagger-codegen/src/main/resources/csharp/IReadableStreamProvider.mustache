@@ -1,0 +1,12 @@
+{{! {{>partial_header}}
+
+namespace {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    /// <summary>
+    /// Represents a read  only stream provider that can be re-initialized if it will be required.
+    /// </summary>
+    public interface IReadableStreamProvider : IStreamProvider
+    {
+        bool IsContentInGzip { get; }
+    }
+}

@@ -1,0 +1,14 @@
+{{! {{>partial_header}}
+using System;
+using System.Net.Http;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public interface IHttpMessageHandlerProvider
+    {
+        event EventHandler<HttpMessageHandler> MessageHandlerChanged;
+        
+        HttpMessageHandler CustomMessageHandler { get; }
+    }
+}

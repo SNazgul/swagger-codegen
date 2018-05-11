@@ -1,0 +1,207 @@
+{{! {{>partial_header}}
+using System;
+using System.Net.Http;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public class LimitedPersistentConnectionHttpClientPool : IHttpClientPool
+    {
+        IHttpMessageHandlerProvider _messageHandlerProvider;
+
+        List<HttpClient> _acquiredNonPersistentClients;
+        List<HttpClient> _acquiredPersistentClients;
+        ConcurrentStack<HttpClient> _availablePersistentClients;
+        Uri _basePath;
+        int _persistentConnectionCount;
+
+        public LimitedPersistentConnectionHttpClientPool(int persistentConnectionCount, Uri basePath, IHttpMessageHandlerProvider messageHandlerProvider = null)
+        {
+            _messageHandlerProvider = messageHandlerProvider;
+            if (_messageHandlerProvider != null)
+                _messageHandlerProvider.MessageHandlerChanged += OnMessageHandlerChanged;
+            _basePath = basePath;
+            _persistentConnectionCount = persistentConnectionCount;
+
+            _availablePersistentClients = new ConcurrentStack<HttpClient>();
+            CreatePersistentConnections(_persistentConnectionCount);
+            _acquiredPersistentClients = new List<HttpClient>();
+            _acquiredNonPersistentClients = new List<HttpClient>();
+        }
+
+        public HttpClient AcquireClient()
+        {
+            CheckDisposed();
+
+            HttpClient resClient = null;
+            if (!_availablePersistentClients.TryPop(out resClient))
+            {
+                var custMsgHandler = _messageHandlerProvider?.CustomMessageHandler;
+                resClient = custMsgHandler != null ? new HttpClient(custMsgHandler) : new HttpClient();
+                resClient.BaseAddress = _basePath;
+                resClient.DefaultRequestHeaders.Connection.Add("keep-alive");
+                lock(_acquiredNonPersistentClients)
+                {
+                    _acquiredNonPersistentClients.Add(resClient);
+                }
+            }
+            else
+            {
+                lock(_acquiredPersistentClients)
+                {
+                    resClient.DefaultRequestHeaders.Connection.Add("keep-alive");
+                    _acquiredPersistentClients.Add(resClient);
+                }
+            }
+
+            return resClient;
+        }
+        
+        public void FreeClient(HttpClient acquiredClient)
+        {
+            CheckDisposed();
+
+            bool bRemoved = false;
+            lock(_acquiredPersistentClients)
+                bRemoved = _acquiredPersistentClients.Remove(acquiredClient);
+            if (bRemoved)
+            {
+                acquiredClient.DefaultRequestHeaders.Clear();
+                _availablePersistentClients.Push(acquiredClient);
+            }
+            else
+            {
+                lock(_acquiredNonPersistentClients)
+                    bRemoved = _acquiredNonPersistentClients.Remove(acquiredClient);
+                if (bRemoved)
+                    acquiredClient.Dispose();
+            }
+        }
+
+        public Uri BasePath
+        {
+            get
+            {
+                return _basePath;
+            }
+
+            set
+            {
+                CheckDisposed();
+                
+                if (_basePath != value)
+                {
+                    int persistentToCreateCount = 0;
+                    lock(_acquiredPersistentClients)
+                    {
+                        persistentToCreateCount = _acquiredPersistentClients.Count;
+                        if (persistentToCreateCount > 0)
+                        {
+                            lock(_acquiredNonPersistentClients)
+                            {
+                                _acquiredNonPersistentClients.AddRange(_acquiredPersistentClients);
+                                _acquiredPersistentClients.Clear();
+                            }
+                        }
+                    }
+
+                    CreatePersistentConnections(persistentToCreateCount);
+                }
+            }
+        }
+
+        void OnMessageHandlerChanged(object sender, HttpMessageHandler newHandler)
+        {
+            lock(_acquiredNonPersistentClients)
+            {
+                foreach(var hc in _acquiredNonPersistentClients)
+                {
+                    hc.Dispose();
+                }
+                _acquiredNonPersistentClients.Clear();
+            }
+
+            lock(_availablePersistentClients)
+            {
+                HttpClient resClient;
+                while(_availablePersistentClients.TryPop(out resClient))
+                {
+                    resClient.Dispose();
+                }
+                CreatePersistentConnections(_persistentConnectionCount);
+            }
+        }
+
+        void CreatePersistentConnections(int count)
+        {
+            var custMsgHandler = _messageHandlerProvider?.CustomMessageHandler;
+            for(int i = 0; i < count; ++i)
+            {
+                var httpClient = custMsgHandler != null ? new HttpClient(custMsgHandler) : new HttpClient();
+                httpClient.BaseAddress = _basePath;
+                _availablePersistentClients.Push(httpClient);
+            }
+        }
+      
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    lock(_acquiredNonPersistentClients)
+                    {
+                        foreach(var hc in _acquiredNonPersistentClients)
+                        {
+                            hc.Dispose();
+                        }
+                        _acquiredNonPersistentClients.Clear();
+                    }
+
+                    lock(_acquiredPersistentClients)
+                    {
+                        foreach(var hc in _acquiredPersistentClients)
+                        {
+                            hc.Dispose();
+                        }
+                        _acquiredPersistentClients.Clear();
+                    }
+
+                    lock(_availablePersistentClients)
+                    {
+                        HttpClient resClient;
+                        while(_availablePersistentClients.TryPop(out resClient))
+                        {
+                            resClient.Dispose();
+                        }
+                    }
+                }
+
+                _disposedValue = true;
+            }
+        }
+        
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+        }
+
+        private void CheckDisposed()
+        {
+	        if (!this._disposedValue)
+	        {
+		        return;
+	        }
+	        throw new ObjectDisposedException(nameof(LimitedPersistentConnectionHttpClientPool));
+        }
+        #endregion    
+    }
+}

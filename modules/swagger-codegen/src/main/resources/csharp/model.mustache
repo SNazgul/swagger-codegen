@@ -1,4 +1,4 @@
-{{>partial_header}}
+{{! {{>partial_header}}
 using System;
 using System.Linq;
 using System.IO;
@@ -26,7 +26,9 @@ using System.ComponentModel;
 {{/generatePropertyChanged}}
 using System.ComponentModel.DataAnnotations;
 {{/netStandard}}
+{{#GenerateRestSharpUsage}}
 using SwaggerDateConverter = {{packageName}}.Client.SwaggerDateConverter;
+{{/GenerateRestSharpUsage}}
 
 {{#models}}
 {{#model}}

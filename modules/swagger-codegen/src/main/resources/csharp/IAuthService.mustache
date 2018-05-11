@@ -1,0 +1,34 @@
+using System;
+{{! HTTP_IMPL_BEGIN }}
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+{{! HTTP_IMPL_END }}
+
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    public interface IAuthService
+    {
+        void PrepareHttpClient(HttpClient client);
+    }
+
+    public interface IOAuthService : IAuthService
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cancelToken"></param>
+        /// <exception cref="{{packageName}}.Client.HttpApiException">Thrown when server error</exception>
+        /// <exception cref="{{packageName}}.Client.HttpServiceException">Thrown when an network error occurs</exception>
+        /// <exception cref="Exception">Application exception of any type derived from System.Exception</exception>
+        /// <exception cref="TaskCanceledException"></exception>
+        Task UpdateSessionToken(CancellationToken cancelToken = default(CancellationToken));
+
+
+        event Action<HttpResponseMessage> OnUnauthorized;
+    }
+}
+
+

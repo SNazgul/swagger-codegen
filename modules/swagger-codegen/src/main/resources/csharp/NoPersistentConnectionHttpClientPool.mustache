@@ -1,0 +1,82 @@
+{{! {{>partial_header}}
+using System;
+using System.Net.Http;
+using System.Collections.Generic;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public class NoPersistentConnectionHttpClientPool : IHttpClientPool
+    {
+        IHttpMessageHandlerProvider _messageHandlerProvider;
+        List<HttpClient> _acquiredClients;
+
+
+        public NoPersistentConnectionHttpClientPool(Uri basePath, IHttpMessageHandlerProvider messageHandlerProvider = null)
+        {
+            _messageHandlerProvider = messageHandlerProvider;
+            _acquiredClients = new List<HttpClient>();
+            BasePath = basePath;
+        }
+
+        public HttpClient AcquireClient()
+        {
+            var customMessageHandler = _messageHandlerProvider?.CustomMessageHandler;
+            HttpClient client = null;
+            if (customMessageHandler != null)
+                client = new HttpClient(customMessageHandler);
+            else
+                client =  new HttpClient();
+
+            lock(_acquiredClients)
+                _acquiredClients.Add(client);
+            
+            client.BaseAddress = BasePath;
+            return client;
+        }
+        
+        public void FreeClient(HttpClient acquiredClient)
+        {
+            bool bRemoved = false;
+            lock(_acquiredClients)
+                bRemoved = _acquiredClients.Remove(acquiredClient);
+            if (bRemoved)
+            {
+                acquiredClient.Dispose();
+            }
+        }
+
+         public Uri BasePath { get; set; }
+
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    lock(_acquiredClients)
+                    {
+                        foreach(var client in _acquiredClients)
+                        {
+                            client.Dispose();
+                        }
+                        _acquiredClients.Clear();
+                    }
+                }
+                _disposedValue = true;
+            }
+        }
+        
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);           
+        }
+        #endregion   
+    }
+}

@@ -1,1 +1,378 @@
-{{>partial_header}}
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.IO;
+{{^netStandard}}
+{{^supportsUWP}}
+using System.Web;
+{{/supportsUWP}}
+{{/netStandard}}
+using System.Linq;
+using System.Net;
+using System.Text;
+{{! HTTP_IMPL_BEGIN }}
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+{{^generalClientClasses}}using {{packageName}}.Services;{{/generalClientClasses}}
+{{#generalClientClasses}}using {{GeneralClientClassesNamespace}}.Services;{{/generalClientClasses}}
+using System.Net.Http.Headers;
+using System.Web;
+{{#generalClientClasses}}using {{GeneralClientClassesNamespace}}.GeneralClient;{{/generalClientClasses}}
+{{! HTTP_IMPL_END }}
+
+namespace {{packageName}}.Client
+{
+    /// <summary>
+    /// API client is mainly responsible for making the HTTP call to the API backend.
+    /// </summary>
+    {{>visibility}} partial class HttpApiClient
+    {
+
+         /// <summary>
+        /// Initializes a new instance of the <see cref="ApiClient" /> class
+        /// with default configuration.
+        /// </summary>
+        public HttpApiClient()
+        {
+            Configuration = {{packageName}}.Client.HttpConfiguration.Default;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApiClient" /> class
+        /// with default base path ({{{basePath}}}).
+        /// </summary>
+        /// <param name="config">An instance of Configuration.</param>
+        public HttpApiClient(HttpConfiguration config)
+        {
+            Configuration = config ?? {{packageName}}.Client.HttpConfiguration.Default;
+        }
+
+
+        /// <summary>
+        /// Gets or sets an instance of the IReadableConfiguration.
+        /// </summary>
+        /// <value>An instance of the IReadableConfiguration.</value>
+        /// <remarks>
+        /// <see cref="IHttpReadableConfiguration"/> helps us to avoid modifying possibly global
+        /// configuration values from within a given client. It does not guarantee thread-safety
+        /// of the <see cref="Configuration"/> instance in any way.
+        /// </remarks>
+        public IHttpReadableConfiguration Configuration { get; set; }
+
+
+        /// <exception cref="HttpApiException">Thrown when fails to make API call or when server fails</exception>
+        /// <exception cref="HttpServiceException">Thrown when network fails</exception>
+        /// <exception cref="Exception">Application exception of any type derived from System.Exception or any exception that 'exceptionFactory' can generate</exception>
+        /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
+        public async Task PerformExchange(
+            Func<HttpClient, Task<HttpResponseMessage>> sendAction,
+            Func<HttpResponseMessage, bool> checkResponce,
+            Func<HttpResponseMessage, Task> proccessResponce,
+            List<KeyValuePair<String, String>> localVarQueryParams,
+            Dictionary<String, String> localVarHeaderParams,
+            IAuthService authSrv,
+            CancellationToken cancelToken,
+            HttpExceptionFactory exceptionFactory,
+            object request = null,
+            Func<Task> prepareBeforeRetry = null)
+        {
+            HttpClient client = Configuration.ClientPool.AcquireClient();
+            InitClientHeader(client, localVarHeaderParams);
+            authSrv?.PrepareHttpClient(client);
+            try
+            {
+                try
+                {
+                    IRepeatRequestStrategy repeatStrategy = null;
+Repeat:
+                    HttpResponseMessage response = await sendAction(client);
+                    if (checkResponce(response))
+                    {
+                        if (proccessResponce != null)
+                            await proccessResponce(response);
+                    }
+                    else
+                    {
+                        if (repeatStrategy == null || !repeatStrategy.DoesCodeRelateToStrategy(response.StatusCode))
+                        {
+                            repeatStrategy = RepeatRequestStrategyFactory.GetRepeatStrategy(response, client, authSrv, prepareBeforeRetry);
+                        }
+
+                        if (repeatStrategy == null || !repeatStrategy.CanRequestBeRepeated(response))
+                        {
+                            // server error 
+                            if (exceptionFactory != null)
+                            {
+                                var exception = await exceptionFactory(response);
+                                if (exception != null)
+                                    throw exception;
+                            }
+                        }
+                        else
+                        {
+                            await repeatStrategy.PrepareBeforeRepeating();
+                            goto Repeat;
+                        }
+                    }
+                }
+                catch (HttpRequestException hre)
+                {
+                    // network error
+                    throw new HttpServiceException(hre);
+                }
+            }
+            finally
+            {
+                Configuration.ClientPool.FreeClient(client);
+            }
+        }
+
+        static void InitClientHeader(HttpClient client, Dictionary<String, String> localVarHeaderParams)
+        {
+            foreach(var headerParam in localVarHeaderParams)
+            {
+                client.DefaultRequestHeaders.TryAddWithoutValidation(headerParam.Key, headerParam.Value);
+            }
+        }        
+
+
+        /// <summary>
+        ///Check if the given MIME is a JSON MIME.
+        ///JSON MIME examples:
+        ///    application/json
+        ///    application/json; charset=UTF8
+        ///    APPLICATION/JSON
+        ///    application/vnd.company+json
+        /// </summary>
+        /// <param name="mime">MIME</param>
+        /// <returns>Returns True if MIME type is json.</returns>
+        public bool IsJsonMime(String mime)
+        {
+            var jsonRegex = new Regex("(?i)^(application/json|[^;/ \t]+/[^;/ \t]+[+]json)[ \t]*(;.*)?$");
+            return mime != null && (jsonRegex.IsMatch(mime) || mime.Equals("application/json-patch+json"));
+        }
+
+        /// <summary>
+        /// Select the Content-Type header's value from the given content-type array:
+        /// if JSON type exists in the given array, use it;
+        /// otherwise use the first one defined in 'consumes'
+        /// </summary>
+        /// <param name="contentTypes">The Content-Type array to select from.</param>
+        /// <returns>The Content-Type header to use.</returns>
+        public String SelectHeaderContentType(String[] contentTypes)
+        {
+            if (contentTypes.Length == 0)
+                return "application/json";
+
+            foreach (var contentType in contentTypes)
+            {
+                if (IsJsonMime(contentType.ToLower()))
+                    return contentType;
+            }
+
+            return contentTypes[0]; // use the first content type specified in 'consumes'
+        }
+
+        /// <summary>
+        /// Select the Accept header's value from the given accepts array:
+        /// if JSON exists in the given array, use it;
+        /// otherwise use all of them (joining into a string)
+        /// </summary>
+        /// <param name="accepts">The accepts array to select from.</param>
+        /// <returns>The Accept header to use.</returns>
+        public String SelectHeaderAccept(String[] accepts)
+        {
+            if (accepts.Length == 0)
+                return null;
+
+            if (accepts.Contains("application/json", StringComparer.OrdinalIgnoreCase))
+                return "application/json";
+
+            return String.Join(",", accepts);
+        }
+
+        /// <summary>
+        /// If parameter is DateTime, output in a formatted string (default ISO 8601), customizable with Configuration.DateTime.
+        /// If parameter is a list, join the list with ",".
+        /// Otherwise just return the string.
+        /// </summary>
+        /// <param name="obj">The parameter (header, path, query, form).</param>
+        /// <returns>Formatted string.</returns>
+        public string ParameterToString(object obj)
+        {
+            if (obj is DateTime)
+                // Return a formatted date string - Can be customized with Configuration.DateTimeFormat
+                // Defaults to an ISO 8601, using the known as a Round-trip date/time pattern ("o")
+                // https://msdn.microsoft.com/en-us/library/az4se3k1(v=vs.110).aspx#Anchor_8
+                // For example: 2009-06-15T13:45:30.0000000
+                return ((DateTime)obj).ToString (Configuration.DateTimeFormat);
+            else if (obj is DateTimeOffset)
+                // Return a formatted date string - Can be customized with Configuration.DateTimeFormat
+                // Defaults to an ISO 8601, using the known as a Round-trip date/time pattern ("o")
+                // https://msdn.microsoft.com/en-us/library/az4se3k1(v=vs.110).aspx#Anchor_8
+                // For example: 2009-06-15T13:45:30.0000000
+                return ((DateTimeOffset)obj).ToString (Configuration.DateTimeFormat);
+            else if (obj is IList)
+            {
+                var flattenedString = new StringBuilder();
+                foreach (var param in (IList)obj)
+                {
+                    if (flattenedString.Length > 0)
+                        flattenedString.Append(",");
+                    flattenedString.Append(param);
+                }
+                return flattenedString.ToString();
+            }
+            else
+                return Convert.ToString (obj);
+        }
+
+        /// <summary>
+        /// Convert params to key/value pairs. 
+        /// Use collectionFormat to properly format lists and collections.
+        /// </summary>
+        /// <param name="name">Key name.</param>
+        /// <param name="value">Value object.</param>
+        /// <returns>A list of KeyValuePairs</returns>
+        public IEnumerable<KeyValuePair<string, string>> ParameterToKeyValuePairs(string collectionFormat, string name, object value)
+        {
+            var parameters = new List<KeyValuePair<string, string>>();
+
+            if (IsCollection(value) && collectionFormat == "multi")
+            {
+                var valueCollection = value as IEnumerable;
+                parameters.AddRange(from object item in valueCollection select new KeyValuePair<string, string>(name, ParameterToString(item)));
+            }
+            else
+            {
+                parameters.Add(new KeyValuePair<string, string>(name, ParameterToString(value)));
+            }
+
+            return parameters;
+        }
+
+        /// <summary>
+        /// Check if generic object is a collection.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns>True if object is a collection type</returns>
+        private static bool IsCollection(object value)
+        {
+            return value is IList || value is ICollection;
+        }
+
+         /// <summary>
+        /// Generate relative path and query properties separated by a question mark (?).        
+        /// </summary>
+        /// <param name="relativePath">The realtive path.</param>
+        /// <param name="queryParams">query parameters</param>
+        /// <returns>generated string</returns>
+        public string GeneratePathAndQuery(string relativePath, IEnumerable<KeyValuePair<string, string>> queryParams)
+        {
+            var sb = new StringBuilder();
+            foreach (var queryParam in queryParams)
+            {
+                if (sb.Length > 0)
+                    sb.Append('&');
+                var key = HttpUtility.UrlEncode(queryParam.Key);
+                sb.Append($"{key}=");
+                var value = HttpUtility.UrlEncode(queryParam.Value);
+                sb.Append(value);
+            }
+
+            Uri uri = new Uri(new Uri(Configuration.BasePath), relativePath);
+            var ub = new UriBuilder(uri);
+            ub.Query = sb.ToString();
+
+            var res = ub.Uri.PathAndQuery;
+            if (res.StartsWith("\\"))
+                res = res.Substring(1);
+            return res;
+        }
+
+        /// <summary>
+        /// Generate relative path and query properties separated by a question mark (?).        
+        /// </summary>
+        /// <param name="basePath">The base path.</param>
+        /// <param name="relativePath">The realtive path.</param>
+        /// <param name="queryParams">query parameters</param>
+        /// <returns>generated string</returns>
+        public static string GeneratePathAndQuery(string basePath, string relativePath, IEnumerable<KeyValuePair<string, string>> queryParams)
+        {
+            var sb = new StringBuilder();
+            foreach (var queryParam in queryParams)
+            {
+                if (sb.Length > 0)
+                    sb.Append('&');
+                var key = HttpUtility.UrlEncode(queryParam.Key);
+                sb.Append($"{key}=");
+                var value = HttpUtility.UrlEncode(queryParam.Value);
+                sb.Append(value);
+            }
+
+            Uri uri = new Uri(new Uri(basePath), relativePath);
+            var ub = new UriBuilder(uri);
+            ub.Query = sb.ToString();
+
+            var res = ub.Uri.PathAndQuery;
+            if (res.StartsWith("\\"))
+                res = res.Substring(1);
+            return res;
+        }
+    }
+
+
+    static class HttpClientExtension
+    {
+        public static Task<HttpResponseMessage> POSTAsync<T>(this HttpClient httpClient, string requestUri, T data, CancellationToken cancellationToken)
+        {
+            if (typeof(T).IsSubclassOf(typeof(HttpContent)))
+                return POSTAsync(httpClient, requestUri, data as HttpContent, cancellationToken);
+            else
+                return httpClient.PostAsJsonAsync<T>(requestUri, data, cancellationToken);
+        }
+
+        public static Task<HttpResponseMessage> POSTAsync(this HttpClient httpClient, string requestUri, byte[] data, CancellationToken cancellationToken)
+        {
+            return httpClient.PostAsync(requestUri, new System.Net.Http.ByteArrayContent(data), cancellationToken);
+        }
+
+        public static Task<HttpResponseMessage> POSTAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken)
+        {
+            return httpClient.PostAsync(requestUri, new System.Net.Http.ByteArrayContent(new byte[0]), cancellationToken);
+        }
+
+        public static Task<HttpResponseMessage> POSTAsync(this HttpClient httpClient, string requestUri, HttpContent content, CancellationToken cancellationToken)
+        {
+            return httpClient.PostAsync(requestUri, content, cancellationToken);
+        }
+
+
+        public static Task<HttpResponseMessage> PUTAsync<T>(this HttpClient httpClient, string requestUri, T data, CancellationToken cancellationToken)
+        {
+            return httpClient.PutAsJsonAsync<T>(requestUri, data, cancellationToken);
+        }
+
+        public static Task<HttpResponseMessage> PUTAsync<T>(this HttpClient httpClient, string requestUri, HttpContent content, T data, CancellationToken cancellationToken)
+        {
+            return httpClient.PutAsync(requestUri, content, cancellationToken);
+        }
+
+
+        public static Task<HttpResponseMessage> GETAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken)
+        {
+	        return httpClient.GetAsync(requestUri, cancellationToken);
+        }
+
+        public static Task<HttpResponseMessage> DELETEAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken)
+        {
+	        return httpClient.GetAsync(requestUri, cancellationToken);
+        }
+
+
+    }
+
+}

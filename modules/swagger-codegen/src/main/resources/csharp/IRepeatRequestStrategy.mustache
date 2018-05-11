@@ -1,0 +1,16 @@
+{{! {{>partial_header}}
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+namespace  {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    public interface IRepeatRequestStrategy
+    {
+        bool DoesCodeRelateToStrategy(HttpStatusCode statusCode);
+
+        bool CanRequestBeRepeated(HttpResponseMessage respMsg);
+
+        Task PrepareBeforeRepeating();
+    }
+}

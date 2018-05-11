@@ -1,0 +1,16 @@
+{{! {{>partial_header}}
+using System.Threading.Tasks;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    /// <summary>
+    /// Represents a stream provider that can be re-initialized if it will be required.
+    /// </summary>
+    public interface IStreamProvider
+    {
+        System.IO.Stream Stream { get; }
+
+        Task ReInitializeStream();
+    }
+}

@@ -1,0 +1,54 @@
+{{>partial_header}}
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    class UpdateOAuthTokenStrategy : IRepeatRequestStrategy
+    {
+        IOAuthService _oauthSrv;
+        int _currentTry;
+        HttpClient _client;
+        Func<Task> _prepareBeforeRetry;
+
+        public UpdateOAuthTokenStrategy(HttpClient client, IOAuthService oauthSrv, Func<Task> prepareBeforeRetry)
+        {
+            _client = client;
+            _oauthSrv = oauthSrv;
+            _prepareBeforeRetry = prepareBeforeRetry;
+        }
+
+        bool IRepeatRequestStrategy.DoesCodeRelateToStrategy(HttpStatusCode statusCode)
+        {
+            return DoesCodeRelateToStrategy(statusCode);
+        }
+
+        public bool CanRequestBeRepeated(HttpResponseMessage respMsg)
+        {
+            return _currentTry == 0;
+        }
+
+        public async Task PrepareBeforeRepeating()
+        {
+            ++_currentTry;
+            await _oauthSrv.UpdateSessionToken();
+            _oauthSrv.PrepareHttpClient(_client);
+
+            if (_prepareBeforeRetry != null)
+                await _prepareBeforeRetry.Invoke();
+        }
+
+        public static bool DoesCodeRelateToStrategy(HttpStatusCode statusCode)
+        {
+            return statusCode == HttpStatusCode.Unauthorized;
+        }
+
+        public static UpdateOAuthTokenStrategy CreateInstanceForResponce(HttpResponseMessage respMsg, HttpClient client, IOAuthService oauthSrv, Func<Task> prepareBeforeRetry)
+        {
+            return new UpdateOAuthTokenStrategy(client, oauthSrv, prepareBeforeRetry);
+        }
+    }
+}

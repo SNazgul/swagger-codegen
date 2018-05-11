@@ -1,0 +1,38 @@
+{{! {{>partial_header}}
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+
+namespace  {{^generalClientClasses}}{{packageName}}.Services{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Services{{/generalClientClasses}}
+{
+    public class RepeatRequestStrategyFactory
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="respMsg">must not be null</param>
+        /// <param name="client">can be null</param>
+        /// <param name="authSrv">can be null</param>
+        /// <param name="prepareBeforeRetry">can be null</param>
+        /// <returns>an strategy for the received error response if such strategy exists and all required for it parameters are not null</returns>
+        public static IRepeatRequestStrategy GetRepeatStrategy(HttpResponseMessage respMsg, 
+            HttpClient client, IAuthService authSrv, Func<Task> prepareBeforeRetry)
+        {
+            IRepeatRequestStrategy res = null;
+            
+            if (UpdateOAuthTokenStrategy.DoesCodeRelateToStrategy(respMsg.StatusCode))
+            {
+                IOAuthService oauthSrv = authSrv as IOAuthService;
+                if (oauthSrv != null && client != null)
+                    res = UpdateOAuthTokenStrategy.CreateInstanceForResponce(respMsg, client, oauthSrv, prepareBeforeRetry);
+            }
+            else if (RepeatRequestAfterDelayStrategy.DoesCodeRelateToStrategy(respMsg.StatusCode))
+            {
+                res = RepeatRequestAfterDelayStrategy.CreateInstanceForResponce(respMsg, prepareBeforeRetry);
+            }
+
+            return res;
+        }
+    }
+}

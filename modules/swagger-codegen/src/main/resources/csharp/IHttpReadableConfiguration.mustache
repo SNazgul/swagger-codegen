@@ -1,0 +1,59 @@
+{{! {{>partial_header}}
+using System;
+using System.Collections.Generic;
+{{^generalClientClasses}}using {{packageName}}.Services;{{/generalClientClasses}}
+{{#generalClientClasses}}
+using {{GeneralClientClassesNamespace}}.GeneralClient;
+using {{GeneralClientClassesNamespace}}.Services;
+{{/generalClientClasses}}
+using System.Net.Http;
+
+
+namespace {{packageName}}.Client
+{
+    /// <summary>
+    /// Represents a readable-only configuration contract.
+    /// </summary>
+    public interface IHttpReadableConfiguration
+    {
+        /// <summary>
+        /// Gets the base path.
+        /// </summary>
+        /// <value>Base path.</value>
+        string BasePath { get; }
+
+        /// <summary>
+        /// Gets the date time format.
+        /// </summary>
+        /// <value>Date time foramt.</value>
+        string DateTimeFormat { get; }
+
+        /// <summary>
+        /// Gets the default header.
+        /// </summary>
+        /// <value>Default header.</value>
+        IDictionary<string, string> DefaultHeader { get; }
+
+        /// <summary>
+        /// Gets or sets the HTTP user agent.
+        /// </summary>
+        /// <value>Http user agent.</value>
+        string UserAgent { get; set; }
+
+        /// <summary>
+        /// Gets the temp folder path.
+        /// </summary>
+        /// <value>Temp folder path.</value>
+        string TempFolderPath { get; }
+
+        IAuthService AuthService { get; set; }
+
+        /// <summary>
+        /// Gets or sets the accept version.
+        /// </summary>
+        /// <value>accept versoin.</value>
+        string AcceptVersion { get; set; }
+
+        IHttpClientPool ClientPool { get; }
+    }
+}
