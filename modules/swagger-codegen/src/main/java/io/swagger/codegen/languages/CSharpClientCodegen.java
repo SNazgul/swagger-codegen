@@ -17,6 +17,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class CSharpClientCodegen extends AbstractCSharpCodegen {
     @SuppressWarnings({"hiding"})
     private static final Logger LOGGER = LoggerFactory.getLogger(CSharpClientCodegen.class);
+    private static final String NET46 = "v4.6";
     private static final String NET45 = "v4.5";
     private static final String NET40 = "v4.0";
     private static final String NET35 = "v3.5";
@@ -39,10 +40,10 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     protected String generalClientPackage = "GeneralClient";
 
     // Defines TargetFrameworkVersion in csproj files
-    protected String targetFramework = NET45;
+    protected String targetFramework = NET46;
 
     // Defines nuget identifiers for target framework
-    protected String targetFrameworkNuget = "net45";
+    protected String targetFrameworkNuget = "net46";
     protected boolean supportsAsync = Boolean.TRUE;
     protected boolean supportsUWP = Boolean.FALSE;
     protected boolean netStandard = Boolean.FALSE;
@@ -99,6 +100,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 .put(NET35, ".NET Framework 3.5 compatible")
                 .put(NET40, ".NET Framework 4.0 compatible")
                 .put(NET45, ".NET Framework 4.5+ compatible")
+                .put(NET46, ".NET Framework 4.6 compatible")
                 .put(NETSTANDARD, ".NET Standard 1.3 compatible")
                 .put(UWP, "Universal Windows Platform (IMPORTANT: this will be decommissioned and replaced by v5.0)")
                 .build();
@@ -240,7 +242,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
             setTargetFramework((String) additionalProperties.get(CodegenConstants.DOTNET_FRAMEWORK));
         } else {
             // Ensure default is set.
-            setTargetFramework(NET45);
+            setTargetFramework(NET46);
             additionalProperties.put(CodegenConstants.DOTNET_FRAMEWORK, this.targetFramework);
         }
 
