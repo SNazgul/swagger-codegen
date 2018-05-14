@@ -28,6 +28,10 @@ public class CodegenResponse {
         return "0".equals(code) || "default".equals(code);
     }
 
+    public boolean isResponseAnError() {
+        return Integer.parseInt(code) >= 400;
+    }
+
     @Override
     public String toString() {
         return String.format("%s(%s)", code, containerType);

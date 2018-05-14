@@ -2143,10 +2143,12 @@ public class DefaultCodegen {
 
         if (operation.getResponses() != null && !operation.getResponses().isEmpty()) {
             Response methodResponse = findMethodResponse(operation.getResponses());
-
+            boolean isCodeDefaultFound = false;
             for (Map.Entry<String, Response> entry : operation.getResponses().entrySet()) {
                 Response response = entry.getValue();
                 CodegenResponse r = fromResponse(entry.getKey(), response);
+                isCodeDefaultFound |= r.isCodeDefault;
+                op.operationContainsAtLeastOneErrorResponce |= r.isResponseAnError();
                 r.hasMore = true;
                 if (r.baseType != null &&
                         !defaultIncludes.contains(r.baseType) &&
@@ -2163,6 +2165,8 @@ public class DefaultCodegen {
                 }
             }
             op.responses.get(op.responses.size() - 1).hasMore = false;
+            if (isCodeDefaultFound)
+                op.operationContainsOneDefaultResponce = operation.getResponses().size() == 1;
 
             if (methodResponse != null) {
                 if (methodResponse.getSchema() != null) {

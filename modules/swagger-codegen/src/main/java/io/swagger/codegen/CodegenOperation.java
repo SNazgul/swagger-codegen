@@ -43,6 +43,8 @@ public class CodegenOperation {
     public String operationIdCamelCase; // for class names
     public String operationIdSnakeCase;
     public boolean bodyParamIsBinary;   // if body param exists, and it is single and it hase type of Stream
+    public boolean operationContainsOneDefaultResponce;
+    public boolean operationContainsAtLeastOneErrorResponce;
 
     /**
      * Check if there's at least one parameter
@@ -302,6 +304,10 @@ public class CodegenOperation {
             return false;
         if (bodyParamIsBinary != that.bodyParamIsBinary)
             return false;
+        if (operationContainsOneDefaultResponce != this.operationContainsOneDefaultResponce)
+            return false;
+        if (operationContainsAtLeastOneErrorResponce != this.operationContainsAtLeastOneErrorResponce)
+            return false;
         return operationIdCamelCase != null ? operationIdCamelCase.equals(that.operationIdCamelCase) : that.operationIdCamelCase == null;
 
     }
@@ -359,6 +365,8 @@ public class CodegenOperation {
         result = 31 * result + (operationIdLowerCase != null ? operationIdLowerCase.hashCode() : 0);
         result = 31 * result + (operationIdCamelCase != null ? operationIdCamelCase.hashCode() : 0);
         result = 31 * result + (bodyParamIsBinary ? 13:31);
+        result = 31 * result + (operationContainsOneDefaultResponce ? 13:31);
+        result = 31 * result + (operationContainsAtLeastOneErrorResponce ? 13:31);
         return result;
     }
 }

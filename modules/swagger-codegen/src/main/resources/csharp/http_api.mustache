@@ -360,22 +360,71 @@ namespace {{packageName}}.{{apiPackage}}
 
             
             HttpExceptionFactory customEF = null;
+            // var responces = {{{responses}}}
+            {{#responses}}
+            // var desc = {{message}}
+            // var isWildCard = {{#isResponseAnError}}ssss{{/isResponseAnError}}
+            {{/responses}}
+
+            {{#responses.0}}
+            {{^defaultResponceTreatsAsOnlyOneErrorDescription}}
+            {{#operationContainsAtLeastOneErrorResponce}}
+            customEF = async (response) => 
+            {
+                {{#responses}}
+                {{#isResponseAnError}}
+                {{#dataType}}
+                if ((int)response.StatusCode == {{code}})
+                {
+                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
+                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                }
+                {{/dataType}}
+                {{^dataType}}
+                {{#message}}
+                if ((int)response.StatusCode == {{code}})
+                {
+                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", "{{message}}");
+                }
+                {{/message}}                
+                {{/dataType}}
+                {{/isResponseAnError}}
+                {{/responses}}
+                return await ExceptionFactory(response);
+            };
+            {{/operationContainsAtLeastOneErrorResponce}}
+            {{/defaultResponceTreatsAsOnlyOneErrorDescription}} 
+            {{/responses.0}}
+
+            {{#defaultResponceTreatsAsOnlyOneErrorDescription}} 
             {{#responses}}
             {{#isCodeDefault}}
+            {{#dataType}}
             customEF = async (response) => 
             {
                 // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
                 var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
                 return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);  
             };
+            {{/dataType}}
             {{/isCodeDefault}}
             {{/responses}}
+            {{/defaultResponceTreatsAsOnlyOneErrorDescription}}
 
             // make the HTTP request
             await this.Configuration.ApiClient.PerformExchange(
                 sendAction,
                 (response) =>
                 {
+                    {{^defaultResponceTreatsAsOnlyOneErrorDescription}}
+                    return ResponseChecker("{{operationId}}", response); 
+                    {{/defaultResponceTreatsAsOnlyOneErrorDescription}}
+                    {{#defaultResponceTreatsAsOnlyOneErrorDescription}}
+                    {{#operationContainsOneDefaultResponce}}
+                    return ResponseChecker("{{operationId}}", response); 
+                    {{/operationContainsOneDefaultResponce}}
+                    {{^operationContainsOneDefaultResponce}}
                     bool bRes = false;
                     {{#responses}}
                     {{^isCodeDefault}}
@@ -383,7 +432,8 @@ namespace {{packageName}}.{{apiPackage}}
                     {{/isCodeDefault}}
                     {{/responses}}
                     return bRes;
-                    //return ResponseChecker("{{operationId}}", response);                    
+                    {{/operationContainsOneDefaultResponce}}
+                    {{/defaultResponceTreatsAsOnlyOneErrorDescription}}                    
                 },
                 proccessResponce,
                 localVarQueryParams,
