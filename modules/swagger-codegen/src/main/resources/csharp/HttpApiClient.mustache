@@ -139,6 +139,10 @@ Repeat:
         }        
 
 
+        const string StandartMultipartFormData = "multipart/form-data";
+        const string NonStandartFormEncodedData = "application/x-www-form-urlencoded";
+
+
         /// <summary>
         ///Check if the given MIME is a JSON MIME.
         ///JSON MIME examples:
@@ -156,12 +160,28 @@ Repeat:
         }
 
         /// <summary>
+        ///Check if the given MIME is a FORM MIME.
+        ///Standart multipart form MIME:
+        ///    multipart/form-data
+        /// Non-standart form MIME:
+        ///    application/x-www-form-urlencoded
+        /// </summary>
+        /// <param name="mime">MIME</param>
+        /// <returns>Returns True if MIME type is a FORM MIME.</returns>
+        public bool IsFormMime(String mime)
+        {
+            return mime.Equals(StandartMultipartFormData, StringComparison.OrdinalIgnoreCase) || mime.Equals(NonStandartFormEncodedData, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         /// Select the Content-Type header's value from the given content-type array:
         /// if JSON type exists in the given array, use it;
-        /// otherwise use the first one defined in 'consumes'
+        /// if FORM type ('multipart' or 'urlencoded') exists, use it;
+        /// otherwise throws an exception
         /// </summary>
         /// <param name="contentTypes">The Content-Type array to select from.</param>
         /// <returns>The Content-Type header to use.</returns>
+        /// <exception cref="HttpApiException">if contentTypes array doesn't containe supported type</exception>
         public String SelectHeaderContentType(String[] contentTypes)
         {
             if (contentTypes.Length == 0)
@@ -173,7 +193,13 @@ Repeat:
                     return contentType;
             }
 
-            return contentTypes[0]; // use the first content type specified in 'consumes'
+            foreach (var contentType in contentTypes)
+            {
+                if (IsFormMime(contentType))
+                    return contentType;
+            }
+
+            throw new HttpApiException(400, "Unsupported content type");    // only unsupported content types specified in 'consumes'
         }
 
         /// <summary>
@@ -191,7 +217,13 @@ Repeat:
             if (accepts.Contains("application/json", StringComparer.OrdinalIgnoreCase))
                 return "application/json";
 
-            return String.Join(",", accepts);
+            if (accepts.Contains(StandartMultipartFormData, StringComparer.OrdinalIgnoreCase))
+                return StandartMultipartFormData;
+
+            if (accepts.Contains(NonStandartFormEncodedData, StringComparer.OrdinalIgnoreCase))
+                return NonStandartFormEncodedData;
+
+             throw new HttpApiException(400, "Unsupported content type");    // only unsupported content types specified in 'produces'
         }
 
         /// <summary>
