@@ -411,7 +411,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         supportingFiles.add(new SupportingFile("IRepeatRequestStrategy.mustache",
                 generalClientPackageDir, "IRepeatRequestStrategy.cs"));
         supportingFiles.add(new SupportingFile("RepeatRequestStrategyFactory.mustache",
-                generalClientPackageDir, "RepeatStrategyFactory.cs"));
+                generalClientPackageDir, "RepeatRequestStrategyFactory.cs"));
         supportingFiles.add(new SupportingFile("UpdateOAuthTokenStrategy.mustache",
                 generalClientPackageDir, "UpdateOAuthTokenStrategy.cs"));
         supportingFiles.add(new SupportingFile("RepeatRequestAfterDelayStrategy.mustache",
