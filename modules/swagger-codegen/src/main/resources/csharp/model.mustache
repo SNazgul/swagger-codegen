@@ -29,6 +29,13 @@ using System.ComponentModel.DataAnnotations;
 {{#GenerateRestSharpUsage}}
 using SwaggerDateConverter = {{packageName}}.Client.SwaggerDateConverter;
 {{/GenerateRestSharpUsage}}
+{{^generalClientClasses}}
+using SwaggerDateConverter = {{packageName}}.Client.SwaggerDateConverter;
+{{/generalClientClasses}}
+{{#generalClientClasses}}
+using SwaggerDateConverter = {{GeneralClientClassesNamespace}}.Client.SwaggerDateConverter;
+{{/generalClientClasses}}
+
 
 {{#models}}
 {{#model}}
