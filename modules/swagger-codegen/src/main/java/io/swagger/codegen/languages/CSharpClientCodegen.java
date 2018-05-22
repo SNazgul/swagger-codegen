@@ -6,6 +6,7 @@ import io.swagger.codegen.*;
 import io.swagger.models.Model;
 import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.Property;
+import io.swagger.models.properties.StringProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     private static final String UWP = "uwp";
     private static final String ADDITIONAL_NAMESPACE_FOR_CLIENT = "AdditionalNamespaceForClient";
     private static final String GENERATE_RESTSHARP_USAGE = "GenerateRestSharpUsage";
+    private static final String FILE_FORMAT_AS_STREAM_TYPE = "TreatFileFormatAsStreamType";
 
     // Defines the sdk option for targeted frameworks, which differs from targetFramework and targetFrameworkNuget
     private static final String MCS_NET_VERSION_KEY = "x-mcs-sdk";
@@ -126,6 +128,10 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
 
         addSwitch(GENERATE_RESTSHARP_USAGE,
                 "If set to TRUE, code that uses RestSharp will be generated.",
+                Boolean.FALSE);
+
+        addSwitch(FILE_FORMAT_AS_STREAM_TYPE,
+                "If set to TRUE, 'file' format (type: 'string', format: 'file') will be treated as System.IO.Stream type",
                 Boolean.FALSE);
 
         // CLI Switches
@@ -904,5 +910,23 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     public Mustache.Compiler processCompiler(Mustache.Compiler compiler) {
         // To avoid unexpected behaviors when options are passed programmatically such as { "supportsAsync": "" }
         return super.processCompiler(compiler).emptyStringIsFalse(true);
+    }
+
+    @Override
+    public String getSwaggerType(Property p) {
+        String datatype = null;
+        Boolean fileFormatAsStreamType = false;
+        if (additionalProperties.containsKey(FILE_FORMAT_AS_STREAM_TYPE)) {
+            fileFormatAsStreamType = convertPropertyToBooleanAndWriteBack(FILE_FORMAT_AS_STREAM_TYPE);
+        }
+
+        if (fileFormatAsStreamType && p instanceof StringProperty && "file".equals(p.getFormat())) {
+            datatype = "System.IO.Stream";
+        }
+        else
+        {
+            datatype = super.getSwaggerType(p);
+        }
+        return datatype;
     }
 }
