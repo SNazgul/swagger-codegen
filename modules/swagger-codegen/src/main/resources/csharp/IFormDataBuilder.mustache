@@ -1,0 +1,12 @@
+﻿using System;
+using System.Net.Http;
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public interface IFormDataBuilder : IDisposable
+    {
+        HttpContent CreateFormData();
+
+        bool CanDataBeCreatedMultitimes { get; }
+    }
+}

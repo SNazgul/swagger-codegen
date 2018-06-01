@@ -77,6 +77,7 @@ namespace {{packageName}}.Client
             CancellationToken cancelToken,
             HttpExceptionFactory exceptionFactory,
             object request = null,
+            bool isRetriable = true,
             Func<Task> prepareBeforeRetry = null)
         {
             HttpClient client = Configuration.ClientPool.AcquireClient();
@@ -96,7 +97,7 @@ Repeat:
                     }
                     else
                     {
-                        if (repeatStrategy == null || !repeatStrategy.DoesCodeRelateToStrategy(response.StatusCode))
+                        if (isRetriable && (repeatStrategy == null || !repeatStrategy.DoesCodeRelateToStrategy(response.StatusCode)))
                         {
                             repeatStrategy = RepeatRequestStrategyFactory.GetRepeatStrategy(response, client, authSrv, prepareBeforeRetry);
                         }

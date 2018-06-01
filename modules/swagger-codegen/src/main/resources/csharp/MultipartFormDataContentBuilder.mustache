@@ -1,0 +1,233 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
+{{^generalClientClasses}}using {{packageName}}.Services;{{/generalClientClasses}}
+{{#generalClientClasses}}using {{GeneralClientClassesNamespace}}.Services;{{/generalClientClasses}}
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public class MultipartFormDataContentBuilder : IFormDataBuilder
+    {
+        List<IPartBuilder> _parts = new List<IPartBuilder>();
+        List<MultipartFormDataContent> _builtContent = new List<MultipartFormDataContent>();
+        bool _canDataBeCreatedMultitimes;
+
+        public MultipartFormDataContentBuilder()
+        {
+        }
+
+        public void AddPart(string partName, IStreamProvider fileProvider)
+        {
+            _parts.Add(new FilePartBuilder(partName, fileProvider));
+        }
+
+        public void AddPart(string partName, System.IO.Stream fileStream)
+        {
+            _canDataBeCreatedMultitimes = false;
+            _parts.Add(new FilePartBuilder(partName, fileStream));
+        }
+
+        public void AddPart(string partName, string stringContent)
+        {
+            _parts.Add(new StringPartBuilder(partName, stringContent));
+        }
+
+        public void AddPart(string partName, byte[] byteArrayContent)
+        {
+            _parts.Add(new ByteArrayPartBuilder(partName, byteArrayContent));
+        }
+
+        public void AddPart(string partName, dynamic content)
+        {
+            _parts.Add(new DynamicPartBuilder(partName, content));
+        }
+
+        public HttpContent CreateFormData()
+        {
+            MultipartFormDataContent result = new MultipartFormDataContent();
+            foreach(var part in _parts)
+            {
+                result.Add(part.BuildPart());
+            }
+            _builtContent.Add(result);
+            return result;
+        }
+
+        public bool CanDataBeCreatedMultitimes => _canDataBeCreatedMultitimes;
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    foreach(var bp in _builtContent)
+                    {
+                        bp.Dispose();
+                    }
+                }
+
+                _disposedValue = true;
+            }
+        }
+
+       
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);            
+        }
+        #endregion
+
+        #region Part builder
+
+        public interface IPartBuilder
+        {
+            HttpContent BuildPart();
+        }
+
+        public class FilePartBuilder : IPartBuilder
+        {
+            IStreamProvider _fileProvider;
+            System.IO.Stream _fileStream;
+            string _partName;
+
+            public FilePartBuilder(string partName, IStreamProvider fileProvider)
+            {
+                _fileProvider = fileProvider;
+                _partName = partName;
+            }
+
+            public FilePartBuilder(string partName, System.IO.Stream fileStream)
+            {
+                _fileStream = fileStream;
+                _partName = partName;
+            }
+
+            public HttpContent BuildPart()
+            {
+                return Build(_partName, _fileStream ?? _fileProvider.Stream);
+            }
+
+            public static HttpContent Build(string partName, System.IO.Stream file)
+            {
+                string fileName = "no_file_name_provided";
+                var nameProp = file.GetType().GetProperty("Name");
+                if (nameProp != null)
+                {
+                    var rawVal = nameProp.GetValue(file, null);
+                    if (rawVal is String)
+                    {
+                        fileName = rawVal as String;
+                        if (fileName == null)
+                            fileName = "";
+                    }
+                }
+
+                StreamContent streamContent = new StreamContent(file);
+                streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                {
+                    Name = partName,
+                    FileName = fileName
+                };
+                streamContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+
+                return streamContent;
+            }
+        }
+
+        public class StringPartBuilder : IPartBuilder
+        {
+            string _stringContent;
+            string _partName;
+
+            public StringPartBuilder(string partName, string stringContent)
+            {
+                _stringContent = stringContent;
+                _partName = partName;
+            }
+
+            public HttpContent BuildPart()
+            {
+                return Build(_partName, _stringContent);
+            }
+
+            public static HttpContent Build(string partName, string stringContent)
+            {
+                var paramContent = new System.Net.Http.StringContent(stringContent);
+
+                paramContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                {
+                    Name = partName
+                };
+
+                return paramContent;
+            }
+        }
+
+        public class ByteArrayPartBuilder : IPartBuilder
+        {
+            byte[] _byteArrayContent;
+            string _partName;
+
+            public ByteArrayPartBuilder(string partName, byte[] byteArrayContent)
+            {
+                _byteArrayContent = byteArrayContent;
+                _partName = partName;
+            }
+
+            public HttpContent BuildPart()
+            {
+                return Build(_partName, _byteArrayContent);
+            }
+
+            public static HttpContent Build(string partName, byte[] byteArrayContent)
+            {
+                var paramContent = new System.Net.Http.ByteArrayContent(byteArrayContent);
+
+                paramContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                {
+                    Name = partName
+                };
+
+                return paramContent;
+            }
+        }
+
+        public class DynamicPartBuilder : IPartBuilder
+        {
+            dynamic _content;
+            string _partName;
+
+            public DynamicPartBuilder(string partName, dynamic content)
+            {
+                _content = content;
+                _partName = partName;
+            }
+
+            public HttpContent BuildPart()
+            {
+                return Build(_partName, _content);
+            }
+
+            public static HttpContent Build(string partName, dynamic content)
+            {
+                var paramContent = new System.Net.Http.ByteArrayContent(content.ToByteArray());
+
+                paramContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                {
+                    Name = partName
+                };
+
+                return paramContent;
+            }
+        }
+
+        #endregion
+    }
+}

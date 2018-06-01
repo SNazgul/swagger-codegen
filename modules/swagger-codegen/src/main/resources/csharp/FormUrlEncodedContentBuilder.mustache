@@ -1,0 +1,55 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Http;
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public class FormUrlEncodedContentBuilder : IFormDataBuilder
+    {
+        Dictionary<string, string> _formUrlencodedParams = new Dictionary<string, string>();
+        List<FormUrlEncodedContent> _builtContent = new List<FormUrlEncodedContent>();
+
+        public void AddPart(string partName, string content)
+        {
+            _formUrlencodedParams[partName] = content;
+        }
+
+        public HttpContent CreateFormData()
+        {
+            FormUrlEncodedContent formDataHttpContent = new FormUrlEncodedContent(_formUrlencodedParams);
+            _builtContent.Add(formDataHttpContent);
+            return formDataHttpContent;
+        }
+
+        public bool CanDataBeCreatedMultitimes => true;
+        
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    foreach (var bp in _builtContent)
+                    {
+                        bp.Dispose();
+                    }
+                }                
+
+                _disposedValue = true;
+            }
+        }
+       
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+        }
+        #endregion
+    }
+}

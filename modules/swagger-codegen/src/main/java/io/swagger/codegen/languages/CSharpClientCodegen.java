@@ -438,6 +438,12 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 generalClientPackageDir, "NoPersistentConnectionHttpClientPool.cs"));
 		supportingFiles.add(new SupportingFile("LimitedPersistentConnectionHttpClientPool.mustache",
                 generalClientPackageDir, "LimitedPersistentConnectionHttpClientPool.cs"));
+        supportingFiles.add(new SupportingFile("IFormDataBuilder.mustache",
+                generalClientPackageDir, "IFormDataBuilder.cs"));
+        supportingFiles.add(new SupportingFile("FormUrlEncodedContentBuilder.mustache",
+                generalClientPackageDir, "FormUrlEncodedContentBuilder.cs"));
+        supportingFiles.add(new SupportingFile("MultipartFormDataContentBuilder.mustache",
+                generalClientPackageDir, "MultipartFormDataContentBuilder.cs"));
 
         //System.setProperty(CodegenConstants.MODELS) !=
 

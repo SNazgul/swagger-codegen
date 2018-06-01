@@ -55,7 +55,7 @@ namespace {{packageName}}.{{apiPackage}}
         /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
         {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
-        {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
+        {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
         {{/bodyParamIsBinary}}
 
         {{/operation}}
@@ -138,8 +138,9 @@ namespace {{packageName}}.{{apiPackage}}
         /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
         {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
-        {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
+        {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
         {
+
         }
         {{/bodyParamIsBinary}}
         
@@ -237,92 +238,49 @@ namespace {{packageName}}.{{apiPackage}}
             
             {{! ------------- FORM REGION ------------- }}
             {{#formParams.0}}
-            System.Net.Http.HttpContent formDataHttpContent = null;
-            try 
-            {
-                MultipartFormDataContent multipartContent = null;
-                Dictionary<string, string> formUrlencodedParams = null;
+            IFormDataBuilder formDataBuilder = null;            
+            
+            MultipartFormDataContentBuilder multipartContentBuilder = null;           {{! it is going to be used if body type is multipart/form-data}}
+            FormUrlEncodedContentBuilder formUrlEncodedContentBuilder = null;     {{! it is going to be used if body type is application/x-www-form-urlencoded}}
                 if (isContentMultipartFormData || (!isContentMultipartFormData && !isContentFormUrlencoded))
                 {
-                    multipartContent = new MultipartFormDataContent();
-                    formDataHttpContent = multipartContent;
+                multipartContentBuilder = new MultipartFormDataContentBuilder();
+                formDataBuilder = multipartContentBuilder;
                 }
                 else
                 {
-                    formUrlencodedParams = new Dictionary<string, string>();
+                formUrlEncodedContentBuilder = new FormUrlEncodedContentBuilder();
+                formDataBuilder = formUrlEncodedContentBuilder;
                 }
-
             {{/formParams.0}}
             {{#formParams}}
                 if ({{paramName}} != null)
                 {{#isFile}}
                 {
-                    if (multipartContent != null)
-                    {
-                        string fileName = "no_file_name_provided";
-                        var nameProp = {{paramName}}.GetType().GetProperty("Name");
-                        if (nameProp != null)
-                        {
-                            var rawVal = nameProp.GetValue({{paramName}}, null);
-                            if (rawVal is String)
+                if (multipartContentBuilder != null)
                             {
-                                fileName = rawVal as String;
-                                if (fileName == null)
-                                    fileName = "";
-                            }
-                        }
-                    
-                        StreamContent streamContent = new StreamContent({{paramName}});
-                        streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-                        {
-                            Name = $"\"{{baseName}}\"",
-                            FileName = $"\"{fileName}\""
-                        };
-                        streamContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
-
-                        multipartContent.Add(streamContent);
+                    multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
                     }
                 }
                 {{/isFile}}
                 {{^isFile}}
                 {
-                    if (multipartContent != null)
+                if (multipartContentBuilder != null)
                     {
-                        System.Net.Http.ByteArrayContent paramContent = null;
-                        {{#isString}}
-                        paramContent = new System.Net.Http.StringContent({{paramName}});
-                        {{/isString}}
-                        {{^isString}}
-                        {{#isByteArray}}
-                        paramContent = new System.Net.Http.ByteArrayContent({{paramName}});
-                        {{/isByteArray}}
-                        {{^isByteArray}}
-                        paramContent = new System.Net.Http.ByteArrayContent({{paramName}}.ToByteArray());
-                        {{/isByteArray}}                
-                        {{/isString}}
-                    
-                        paramContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-                        {
-                            Name = $"{{baseName}}"                    
-                        };
-
-                        multipartContent.Add(paramContent);
+                    multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
                     }
                     else
                     {
                         {{#isString}}
-                        formUrlencodedParams["{{baseName}}"] = {{paramName}};
+                    formUrlEncodedContentBuilder.AddPart("{{baseName}}", {{paramName}});
                         {{/isString}}
                     }
                 }
-                
                 {{/isFile}}
             {{/formParams}}
             {{#formParams.0}}
-                if (formUrlencodedParams != null)
+            try 
                 {
-                    formDataHttpContent = new FormUrlEncodedContent(formUrlencodedParams);
-                }
             {{/formParams.0}}
             {{! ---------------------------------------- }}
 
@@ -331,19 +289,29 @@ namespace {{packageName}}.{{apiPackage}}
                  localVarPath = this.Configuration.ApiClient.GeneratePathAndQuery("{{{path}}}", localVarQueryParams);
             }
 
+            {{#bodyParam}}  {{! if body parameter exists and body parameter type is the binary type - lets represent the parameter in the form of an http stream }}
+            {{#isBinary}}
+            StreamContent {{paramName}}StreamContent = new StreamContent({{paramName}});
+            try {
+            {{/isBinary}}
+            {{/bodyParam}}
+
             Func<HttpClient, Task<HttpResponseMessage>> sendAction = (client) =>
             {
-                {{#bodyParam}}
+                {{#bodyParam}}  {{! if body parameter exists - use it }}
+                {{^isBinary}}   {{! if body parameter type is not the binary type - send it as is}}
                 return client.{{httpMethod}}Async(localVarPath, {{paramName}}, cancelToken);                
+                {{/isBinary}}
+                {{#isBinary}}   {{! if body parameter type is the binary type - send it as HttpContent}}                
+                return client.{{httpMethod}}Async(localVarPath, {{paramName}}StreamContent, cancelToken);
+                {{/isBinary}}
                 {{/bodyParam}}
-                {{^bodyParam}}
-                {{^formParams}}
+                {{^bodyParam}}  {{! if body parameter doesn't exist }}
+                {{^formParams}} {{! and if request parameter type is not the form type (and is not a body param) - with a high probability we already have processed it (for example as query param...), just skip it now }}
                 return client.{{httpMethod}}Async(localVarPath, cancelToken);                
                 {{/formParams}}
-                {{#formParams.0}}
-                return client.{{httpMethod}}Async(localVarPath, formDataHttpContent, cancelToken);
-                {{/formParams.0}}
-                {{/bodyParam}}
+                {{#formParams.0}}   {{! if this request is some type of form data }}
+                return client.{{httpMethod}}Async(localVarPath, formDataBuilder.CreateFormData() , cancelToken);{{/formParams.0}}{{/bodyParam}}
             };
 
             {{#returnType}}
@@ -444,7 +412,11 @@ namespace {{packageName}}.{{apiPackage}}
                 null,
                 {{/authMethods}}
                 cancelToken,
-                customEF ?? ExceptionFactory);
+                customEF ?? ExceptionFactory{{#formParams.0}},
+                formDataBuilder.CanDataBeCreatedMultitimes {{! retriable state depends from from the content of form data }}
+                {{/formParams.0}}{{^formParams.0}}{{#bodyParamIsBinary}},
+                false{{/bodyParamIsBinary}} {{! if body param is binary - request can't be repeated}}
+                {{/formParams.0}});
             
 
             {{#returnType}}
@@ -455,12 +427,22 @@ namespace {{packageName}}.{{apiPackage}}
             {{/returnType}}
 
             {{#formParams.0}}
-            }                   // try  {  MultipartFormDataContent multipartContent = null;
+            }                   // try  {  {{!/formParams.0}}
             finally
             {
-                formDataHttpContent.Dispose();
+                formDataBuilder.Dispose();
             }
             {{/formParams.0}}
+            {{#bodyParam}}  {{! if body parameter exists and body parameter type is the binary type - dispose created http stream }}
+            {{#isBinary}}
+            }                   // try  {  StreamContent {{paramName}}StreamContent = new StreamContent({{paramName}});
+            finally
+            {
+                {{paramName}}StreamContent?.Dispose();
+            }
+            {{/isBinary}}
+            {{/bodyParam}}
+
         }
         
         {{/operation}}
