@@ -370,6 +370,11 @@ public class DefaultCodegen {
     public void postProcessParameter(CodegenParameter parameter){
     }
 
+    // override to post-process any operation
+    @SuppressWarnings("unused")
+    public void postProcessOperation(CodegenOperation operation){
+    }
+
     //override with any special handling of the entire swagger spec
     @SuppressWarnings("unused")
     public void preprocessSwagger(Swagger swagger) {
@@ -2334,6 +2339,7 @@ public class DefaultCodegen {
         op.isRestfulDestroy = op.isRestfulDestroy();
         op.isRestful = op.isRestful();
 
+        postProcessOperation(op);
         return op;
     }
 

@@ -46,6 +46,9 @@ public class CodegenOperation {
     public boolean operationContainsOneDefaultResponce;
     public boolean operationContainsAtLeastOneErrorResponce;
 
+    public boolean needToGenerateGZipContent;
+
+
     /**
      * Check if there's at least one parameter
      *
@@ -170,6 +173,15 @@ public class CodegenOperation {
      */
     public boolean isRestful() {
         return isRestfulIndex() || isRestfulShow() || isRestfulCreate() || isRestfulUpdate() || isRestfulDestroy();
+    }
+
+    /**
+     *
+     *
+     * @return true if need to generate IReadableStreamProvider, false otherwise
+     */
+    public boolean isBodyParamBinaryOrGenerateGZipContent() {
+        return bodyParamIsBinary || needToGenerateGZipContent;
     }
 
     /**

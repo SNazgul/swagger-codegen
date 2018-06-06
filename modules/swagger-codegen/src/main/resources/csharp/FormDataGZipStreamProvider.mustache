@@ -1,0 +1,61 @@
+﻿using System.IO;
+using System.Threading.Tasks;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public class FormDataGZipStreamProvider : GZippedStreamProvider
+    {
+        IFormDataBuilder _formDataBuilder;
+        MemoryStream _content;
+
+        public FormDataGZipStreamProvider(IFormDataBuilder formDataBuilder)
+        {
+            _formDataBuilder = formDataBuilder;
+        }
+
+        protected override Stream GetStreamInternal()
+        {
+            if (_content == null)
+            {
+                _content = new MemoryStream();
+                var httpContent = _formDataBuilder.CreateFormData();
+                httpContent.CopyToAsync(_content).Wait();
+                _content.Position = 0;
+            }
+            return _content;
+        }
+
+        protected override Task ReInitializeStreamInternal()
+        {
+            if (_content != null)
+                _content.Position = 0;
+            return Task.CompletedTask;
+        }
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    _formDataBuilder?.Dispose();
+                    _formDataBuilder = null;
+
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                _disposedValue = true;
+            }
+
+            base.Dispose(disposing);
+        }
+
+        #endregion
+    }
+}

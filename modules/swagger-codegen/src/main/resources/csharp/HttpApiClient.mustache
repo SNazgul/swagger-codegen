@@ -76,7 +76,6 @@ namespace {{packageName}}.Client
             IAuthService authSrv,
             CancellationToken cancelToken,
             HttpExceptionFactory exceptionFactory,
-            object request = null,
             bool isRetriable = true,
             Func<Task> prepareBeforeRetry = null)
         {

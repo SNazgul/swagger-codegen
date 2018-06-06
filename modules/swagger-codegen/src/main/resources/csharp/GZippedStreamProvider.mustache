@@ -1,0 +1,75 @@
+﻿using System;
+using System.IO;
+using System.IO.Compression;
+using System.Net.Http;
+using System.Threading.Tasks;
+{{^generalClientClasses}}using {{packageName}}.Services;{{/generalClientClasses}}
+{{#generalClientClasses}}using {{GeneralClientClassesNamespace}}.Services;{{/generalClientClasses}}
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public abstract class GZippedStreamProvider : IReadableStreamProvider, IDisposable
+    {
+        GZipStream _gzipStream;
+
+        public bool IsContentInGzip => true;
+
+        public virtual Stream Stream
+        {
+            get
+            {
+                if (_gzipStream == null)
+                {
+                    CreateGZipStream();
+                }
+                return _gzipStream;
+            }
+        }
+
+        private void CreateGZipStream()
+        {
+            var stream = GetStreamInternal();
+            _gzipStream = new GZipStream(stream, CompressionMode.Compress, true);
+        }
+
+        public virtual async Task ReInitializeStream()
+        {
+            _gzipStream?.Dispose();
+            _gzipStream = null;
+            await ReInitializeStreamInternal();
+            CreateGZipStream();
+        }
+
+        protected abstract Stream GetStreamInternal();
+
+        protected abstract Task ReInitializeStreamInternal();
+
+        #region IDisposable Support
+        private bool _disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    _gzipStream?.Dispose();
+                    _gzipStream = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                _disposedValue = true;
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+        }
+        #endregion
+    }
+}

@@ -30,6 +30,9 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
     private static final String ADDITIONAL_NAMESPACE_FOR_CLIENT = "AdditionalNamespaceForClient";
     private static final String GENERATE_RESTSHARP_USAGE = "GenerateRestSharpUsage";
     private static final String FILE_FORMAT_AS_STREAM_TYPE = "TreatFileFormatAsStreamType";
+    private static final String GENERATE_GZIP_CONTENT_OPERATION = "GenerateGZipContentOperation";
+    private static final String GENERATE_GZIP_CONTENT_OPERATION_DESC = "Generate version of the operation that compress contents by using GZip.";
+
 
     // Defines the sdk option for targeted frameworks, which differs from targetFramework and targetFrameworkNuget
     private static final String MCS_NET_VERSION_KEY = "x-mcs-sdk";
@@ -132,6 +135,10 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
 
         addSwitch(FILE_FORMAT_AS_STREAM_TYPE,
                 "If set to TRUE, 'file' format (type: 'string', format: 'file') will be treated as System.IO.Stream type",
+                Boolean.FALSE);
+
+        addSwitch(GENERATE_GZIP_CONTENT_OPERATION,
+                GENERATE_GZIP_CONTENT_OPERATION_DESC,
                 Boolean.FALSE);
 
         // CLI Switches
@@ -444,6 +451,12 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 generalClientPackageDir, "FormUrlEncodedContentBuilder.cs"));
         supportingFiles.add(new SupportingFile("MultipartFormDataContentBuilder.mustache",
                 generalClientPackageDir, "MultipartFormDataContentBuilder.cs"));
+        supportingFiles.add(new SupportingFile("FormDataGZipStreamProvider.mustache",
+                generalClientPackageDir, "FormDataGZipStreamProvider.cs"));
+        supportingFiles.add(new SupportingFile("GZippedStreamProvider.mustache",
+                generalClientPackageDir, "GZippedStreamProvider.cs"));
+        supportingFiles.add(new SupportingFile("JsonObjectGZippedStreamProvidery.mustache",
+                generalClientPackageDir, "JsonObjectGZippedStreamProvidery.cs"));
 
         //System.setProperty(CodegenConstants.MODELS) !=
 
@@ -585,6 +598,15 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
         }
 
         return objs;
+    }
+
+    @Override
+    public void postProcessOperation(CodegenOperation operation){
+        Boolean generateGZipContentOperation = false;
+        if (additionalProperties.containsKey(GENERATE_GZIP_CONTENT_OPERATION)) {
+            generateGZipContentOperation = convertPropertyToBooleanAndWriteBack(GENERATE_GZIP_CONTENT_OPERATION);
+        }
+        operation.needToGenerateGZipContent = generateGZipContentOperation;
     }
 
     @Override

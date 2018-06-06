@@ -42,7 +42,8 @@ namespace {{packageName}}.{{apiPackage}}
         {{/allParams}}/// <returns>Task of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}void{{/returnType}}</returns>
         {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
         
-        {{#bodyParamIsBinary}}
+        {{#bodyParam}}
+        {{#isBodyParamBinaryOrGenerateGZipContent}}
          /// <summary>
         /// {{summary}}
         /// </summary>
@@ -56,7 +57,28 @@ namespace {{packageName}}.{{apiPackage}}
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
         {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
         {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
+        {{/isBodyParamBinaryOrGenerateGZipContent}}
+        {{/bodyParam}}
+
+        {{#GenerateGZipContentOperation}}
+        {{^bodyParamIsBinary}}
+        {{#bodyParam}}
+        /// <summary>
+        /// {{summary}}
+        /// </summary>
+        /// <remarks>
+        /// {{notes}}
+        /// </remarks>
+        /// <exception cref="HttpApiException">Thrown when fails to make API call or when server fails</exception>
+        /// <exception cref="HttpServiceException">Thrown when network fails</exception>
+        /// <exception cref="Exception">Application exception of any type derived from System.Exception or any exception that 'exceptionFactory' can generate</exception>
+        /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
+        {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
+        {{/allParams}}/// <returns>Task of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}void{{/returnType}}</returns>
+        {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}GZippedAsync ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
+        {{/bodyParam}}
         {{/bodyParamIsBinary}}
+        {{/GenerateGZipContentOperation}}
 
         {{/operation}}
         #endregion Asynchronous Operations
@@ -128,7 +150,8 @@ namespace {{packageName}}.{{apiPackage}}
         
         {{#operation}}
 
-        {{#bodyParamIsBinary}}
+        {{#bodyParam}}
+        {{#isBodyParamBinaryOrGenerateGZipContent}}
         /// <summary>
         /// {{summary}} {{notes}}
         /// </summary>
@@ -140,9 +163,217 @@ namespace {{packageName}}.{{apiPackage}}
         {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
         {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
         {
+            {{#allParams}}
+            {{#required}}
+            // verify the required parameter '{{paramName}}' is set
+            if ({{paramName}} == null)
+                throw new HttpApiException(400, "Missing required parameter '{{paramName}}' when calling {{classname}}->{{operationId}}");
+            {{/required}}
+            {{/allParams}}
 
+            var localVarPath = $"{{#lambda.remove_initial_forwardslash}}{{{path}}}{{/lambda.remove_initial_forwardslash}}";
+            List<KeyValuePair<String, String>> localVarQueryParams = null;
+            var localVarHeaderParams = new Dictionary<String, String>(this.Configuration.DefaultHeader);
+
+            // to determine the Content-Type header
+            String[] localVarHttpContentTypes = new String[] {
+                {{#consumes}}
+                "{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}
+                {{/consumes}}
+            };
+           
+            {{^formParams.0}}
+            String localVarHttpContentType = this.Configuration.ApiClient.SelectHeaderContentType(localVarHttpContentTypes);
+            {{/formParams.0}}
+            
+            // to determine the Accept header
+            String[] localVarHttpHeaderAccepts = new String[] {
+                {{#produces}}
+                "{{{mediaType}}}"{{#hasMore}},{{/hasMore}}
+                {{/produces}}
+            };
+            String localVarHttpHeaderAccept = this.Configuration.ApiClient.SelectHeaderAccept(localVarHttpHeaderAccepts);
+            if (localVarHttpHeaderAccept != null)
+                localVarHeaderParams.Add("Accept", localVarHttpHeaderAccept);
+
+            {{#queryParams.0}}
+            localVarQueryParams = new List<KeyValuePair<String, String>>();
+            {{/queryParams.0}}
+            {{#queryParams}}
+            if ({{paramName}} != null) localVarQueryParams.AddRange(this.Configuration.ApiClient.ParameterToKeyValuePairs("{{#collectionFormat}}{{collectionFormat}}{{/collectionFormat}}", "{{baseName}}", {{paramName}})); // query parameter
+            {{/queryParams}}            
+
+            {{#headerParams}}
+            if ({{paramName}} != null) localVarHeaderParams.Add("{{baseName}}", this.Configuration.ApiClient.ParameterToString({{paramName}})); // header parameter
+            {{/headerParams}}
+
+            {{#authMethods}}
+            // authentication ({{name}}) required            
+            {{#isApiKey}}
+            {{#isKeyInHeader}}
+            if (!String.IsNullOrEmpty(this.Configuration.GetApiKeyWithPrefix("{{keyParamName}}")))
+            {
+                localVarHeaderParams["{{keyParamName}}"] = this.Configuration.GetApiKeyWithPrefix("{{keyParamName}}");
+            }
+            {{/isKeyInHeader}}
+            {{#isKeyInQuery}}
+            if (!String.IsNullOrEmpty(this.Configuration.GetApiKeyWithPrefix("{{keyParamName}}")))
+            {
+                if (localVarQueryParams == null)
+                    localVarQueryParams = new List<KeyValuePair<String, String>>();                    
+                localVarQueryParams.AddRange(this.Configuration.ApiClient.ParameterToKeyValuePairs("", "{{keyParamName}}", this.Configuration.GetApiKeyWithPrefix("{{keyParamName}}")));
+            }
+            {{/isKeyInQuery}}
+            {{/isApiKey}}
+            {{#isBasic}}
+            // http basic authentication required
+            if (!String.IsNullOrEmpty(this.Configuration.Username) || !String.IsNullOrEmpty(this.Configuration.Password))
+            {
+                localVarHeaderParams["Authorization"] = "Basic " + ApiClient.Base64Encode(this.Configuration.Username + ":" + this.Configuration.Password);
+            }
+            {{/isBasic}}
+            {{#isOAuth}}
+            // oauth required
+            IAuthService authSrv = this.Configuration.AuthService;
+            {{/isOAuth}}
+            {{/authMethods}}            
+
+            if (localVarQueryParams?.Count > 0)
+            {
+                 localVarPath = this.Configuration.ApiClient.GeneratePathAndQuery("{{{path}}}", localVarQueryParams);
+            }
+
+            StreamContent {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}}.Stream);
+            try {
+
+                Func<HttpClient, Task<HttpResponseMessage>> sendAction = (client) =>
+                {
+                    return client.{{httpMethod}}Async(localVarPath, {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent, cancelToken);
+                };
+
+                {{#returnType}}
+                {{{returnType}}} resultValue = default({{{returnType}}});            
+                Func<HttpResponseMessage, Task> proccessResponce = async (response) =>
+                {
+                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
+                    resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>();
+                };
+                {{/returnType}}
+                {{^returnType}}
+                Func<HttpResponseMessage, Task> proccessResponce = null;
+                {{/returnType}}
+
+
+                HttpExceptionFactory customEF = null;
+                {{#responses.0}}
+                {{^defaultResponceTreatsAsOnlyOneErrorDescription}}
+                {{#operationContainsAtLeastOneErrorResponce}}
+                customEF = async (response) => 
+                {
+                    {{#responses}}
+                    {{#isResponseAnError}}
+                    {{#dataType}}
+                    if ((int)response.StatusCode == {{code}})
+                    {
+                        // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
+                        var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                        return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                    }
+                    {{/dataType}}
+                    {{^dataType}}
+                    {{#message}}
+                    if ((int)response.StatusCode == {{code}})
+                    {
+                        return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", "{{message}}");
         }
-        {{/bodyParamIsBinary}}
+                    {{/message}}                
+                    {{/dataType}}
+                    {{/isResponseAnError}}
+                    {{/responses}}
+                    return await ExceptionFactory(response);
+                };
+                {{/operationContainsAtLeastOneErrorResponce}}
+                {{/defaultResponceTreatsAsOnlyOneErrorDescription}} 
+                {{/responses.0}}
+
+                {{#defaultResponceTreatsAsOnlyOneErrorDescription}} 
+                {{#responses}}
+                {{#isCodeDefault}}
+                {{#dataType}}
+                customEF = async (response) => 
+                {
+                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
+                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);  
+                };
+                {{/dataType}}
+                {{/isCodeDefault}}
+                {{/responses}}
+                {{/defaultResponceTreatsAsOnlyOneErrorDescription}}
+
+                // make the HTTP request
+                await this.Configuration.ApiClient.PerformExchange(
+                    sendAction,
+                    (response) =>
+                    {
+                        {{^defaultResponceTreatsAsOnlyOneErrorDescription}}
+                        return ResponseChecker("{{operationId}}", response); 
+                        {{/defaultResponceTreatsAsOnlyOneErrorDescription}}
+                        {{#defaultResponceTreatsAsOnlyOneErrorDescription}}
+                        {{#operationContainsOneDefaultResponce}}
+                        return ResponseChecker("{{operationId}}", response); 
+                        {{/operationContainsOneDefaultResponce}}
+                        {{^operationContainsOneDefaultResponce}}
+                        bool bRes = false;
+                        {{#responses}}
+                        {{^isCodeDefault}}
+                        bRes |= (int)response.StatusCode == {{code}};
+                        {{/isCodeDefault}}
+                        {{/responses}}
+                        return bRes;
+                        {{/operationContainsOneDefaultResponce}}
+                        {{/defaultResponceTreatsAsOnlyOneErrorDescription}}                    
+                    },
+                    proccessResponce,
+                    localVarQueryParams,
+                    localVarHeaderParams,
+                    {{#authMethods}}
+                    {{#isOAuth}}
+                    authSrv,
+                    {{/isOAuth}}
+                    {{^isOAuth}}
+                    null,
+                    {{/isOAuth}}
+                    {{/authMethods}}
+                    {{^authMethods}}
+                    null,
+                    {{/authMethods}}
+                    cancelToken,
+                    customEF ?? ExceptionFactory,
+                    true,
+                    async () => 
+                    {
+                        {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Dispose();
+                        await {{#bodyParam}}{{paramName}}{{/bodyParam}}.ReInitializeStream();
+                        {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}}.Stream);
+                    }
+                );
+                
+
+                {{#returnType}}
+                return resultValue;
+                {{/returnType}}
+                {{^returnType}}
+                return ;
+                {{/returnType}}           
+            }                   // try  {  StreamContent {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}});
+            finally
+            {
+                {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent?.Dispose();
+            }
+        }
+        {{/isBodyParamBinaryOrGenerateGZipContent}}
+        {{/bodyParam}}
         
         /// <summary>
         /// {{summary}} {{notes}}
@@ -444,6 +675,94 @@ namespace {{packageName}}.{{apiPackage}}
             {{/bodyParam}}
 
         }
+        
+
+        {{#GenerateGZipContentOperation}}
+        {{#bodyParam}}
+        {{^bodyParamIsBinary}}
+        /// <summary>
+        /// {{summary}} {{notes}}
+        /// </summary>
+        /// <exception cref="HttpApiException">Thrown when fails to make API call or when server fails</exception>
+        /// <exception cref="HttpServiceException">Thrown when network fails</exception>
+        /// <exception cref="Exception">Application exception of any type derived from System.Exception or any exception that 'exceptionFactory' can generate</exception>
+        /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
+        {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
+        {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
+        {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}GZippedAsync ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
+        {
+            GZippedStreamProvider gzippedStreamProvider = null;
+            try
+            {
+                {{^formParams.0}}
+                gzippedStreamProvider = new JsonObjectGZippedStream<{{{dataType}}}>({{{paramName}}});
+                {{/formParams.0}}
+                {{! ------------- FORM REGION ------------- }}
+                {{#formParams.0}}
+                // to determine the Content-Type header
+                String[] localVarHttpContentTypes = new String[] {
+                    {{#consumes}}
+                    "{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}
+                    {{/consumes}}
+                };
+
+                bool isContentMultipartFormData = localVarHttpContentTypes.Contains("multipart/form-data");
+                bool isContentFormUrlencoded = localVarHttpContentTypes.Contains("application/x-www-form-urlencoded");
+                
+                IFormDataBuilder formDataBuilder = null;            
+                
+                MultipartFormDataContentBuilder multipartContentBuilder = null;             {{! it is going to be used if body type is multipart/form-data}}
+                FormUrlEncodedContentBuilder formUrlEncodedContentBuilder = null;           {{! it is going to be used if body type is application/x-www-form-urlencoded}}
+                if (isContentMultipartFormData || (!isContentMultipartFormData && !isContentFormUrlencoded))
+                {
+                    multipartContentBuilder = new MultipartFormDataContentBuilder();
+                    formDataBuilder = multipartContentBuilder;
+                }
+                else
+                {
+                    formUrlEncodedContentBuilder = new FormUrlEncodedContentBuilder();
+                    formDataBuilder = formUrlEncodedContentBuilder;
+                }
+                
+                {{#formParams}}
+                if ({{paramName}} != null)
+                {{#isFile}}
+                {
+                    if (multipartContentBuilder != null)
+                    {
+                        multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
+                    }
+                }
+                {{/isFile}}
+                {{^isFile}}
+                {
+                    if (multipartContentBuilder != null)
+                    {
+                        multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
+                    }
+                    else
+                    {
+                        {{#isString}}
+                        formUrlEncodedContentBuilder.AddPart("{{baseName}}", {{paramName}});
+                        {{/isString}}
+                    }
+                }
+                {{/isFile}}
+                {{/formParams}}
+                gzippedStreamProvider = new FormDataGZipStreamProvider(multipartContentBuilder ?? formUrlEncodedContentBuilder);
+                {{/formParams.0}}
+                {{! ---------------------------------------- }}
+
+                {{#returnType}}return{{/returnType}} await {{operationId}}Async({{#allParams}}{{#isBodyParam}}{{paramName}}:gzippedStreamProvider{{/isBodyParam}}{{^isBodyParam}}{{paramName}}:{{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}}cancelToken:cancelToken);
+            }
+            finally
+            {
+                gzippedStreamProvider?.Dispose();
+            }
+        }
+        {{/bodyParamIsBinary}}
+        {{/bodyParam}}
+        {{/GenerateGZipContentOperation}}
         
         {{/operation}}
     }
