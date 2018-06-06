@@ -56,7 +56,7 @@ namespace {{packageName}}.{{apiPackage}}
         /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
         {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
-        {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
+        {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken), String contentType = null);
         {{/isBodyParamBinaryOrGenerateGZipContent}}
         {{/bodyParam}}
 
@@ -161,7 +161,7 @@ namespace {{packageName}}.{{apiPackage}}
         /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
         {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
-        {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
+        {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{^isBodyParam}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{/isBodyParam}}{{#isBodyParam}}IReadableStreamProvider {{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken), String contentType = null)
         {
             {{#allParams}}
             {{#required}}
@@ -182,9 +182,10 @@ namespace {{packageName}}.{{apiPackage}}
                 {{/consumes}}
             };
            
-            {{^formParams.0}}
-            String localVarHttpContentType = this.Configuration.ApiClient.SelectHeaderContentType(localVarHttpContentTypes);
-            {{/formParams.0}}
+            if (String.IsNullOrWhiteSpace(contentType))
+            {
+                contentType = this.Configuration.ApiClient.SelectHeaderContentType(localVarHttpContentTypes);
+            }
             
             // to determine the Accept header
             String[] localVarHttpHeaderAccepts = new String[] {
@@ -244,6 +245,10 @@ namespace {{packageName}}.{{apiPackage}}
             }
 
             StreamContent {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}}.Stream);
+             {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Type", contentType);
+            if ({{#bodyParam}}{{paramName}}{{/bodyParam}}.IsContentInGzip)
+                {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Encoding", "gzip, deflate");
+
             try {
 
                 Func<HttpClient, Task<HttpResponseMessage>> sendAction = (client) =>
@@ -356,6 +361,8 @@ namespace {{packageName}}.{{apiPackage}}
                         {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Dispose();
                         await {{#bodyParam}}{{paramName}}{{/bodyParam}}.ReInitializeStream();
                         {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}}.Stream);
+                        if ({{#bodyParam}}{{paramName}}{{/bodyParam}}.IsContentInGzip)
+                            {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Encoding", "gzip, deflate");
                     }
                 );
                 
@@ -696,6 +703,7 @@ namespace {{packageName}}.{{apiPackage}}
             {
                 {{^formParams.0}}
                 gzippedStreamProvider = new JsonObjectGZippedStream<{{{dataType}}}>({{{paramName}}});
+                String contentType = "application/json";
                 {{/formParams.0}}
                 {{! ------------- FORM REGION ------------- }}
                 {{#formParams.0}}
@@ -706,8 +714,8 @@ namespace {{packageName}}.{{apiPackage}}
                     {{/consumes}}
                 };
 
-                bool isContentMultipartFormData = localVarHttpContentTypes.Contains("multipart/form-data");
-                bool isContentFormUrlencoded = localVarHttpContentTypes.Contains("application/x-www-form-urlencoded");
+                bool isContentMultipartFormData = localVarHttpContentTypes.Contains(HttpApiCient.StandartMultipartFormData);
+                bool isContentFormUrlencoded = localVarHttpContentTypes.Contains(HttpApiCient.NonStandartFormEncodedData);
                 
                 IFormDataBuilder formDataBuilder = null;            
                 
@@ -717,11 +725,13 @@ namespace {{packageName}}.{{apiPackage}}
                 {
                     multipartContentBuilder = new MultipartFormDataContentBuilder();
                     formDataBuilder = multipartContentBuilder;
+                    contentType = HttpApiCient.StandartMultipartFormData;
                 }
                 else
                 {
                     formUrlEncodedContentBuilder = new FormUrlEncodedContentBuilder();
                     formDataBuilder = formUrlEncodedContentBuilder;
+                    contentType = HttpApiCient.NonStandartFormEncodedData;
                 }
                 
                 {{#formParams}}
@@ -753,7 +763,7 @@ namespace {{packageName}}.{{apiPackage}}
                 {{/formParams.0}}
                 {{! ---------------------------------------- }}
 
-                {{#returnType}}return{{/returnType}} await {{operationId}}Async({{#allParams}}{{#isBodyParam}}{{paramName}}:gzippedStreamProvider{{/isBodyParam}}{{^isBodyParam}}{{paramName}}:{{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}}cancelToken:cancelToken);
+                {{#returnType}}return{{/returnType}} await {{operationId}}Async({{#allParams}}{{#isBodyParam}}{{paramName}}:gzippedStreamProvider{{/isBodyParam}}{{^isBodyParam}}{{paramName}}:{{paramName}}{{/isBodyParam}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}}cancelToken:cancelToken, contentType:contentType);
             }
             finally
             {
