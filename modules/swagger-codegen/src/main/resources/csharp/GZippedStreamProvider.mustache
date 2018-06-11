@@ -10,7 +10,9 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
 {
     public abstract class GZippedStreamProvider : IReadableStreamProvider, IDisposable
     {
-        GZipStream _gzipStream;
+        Stream _gzippedStream;
+        string _tempFileName;
+        const int InMemoryStreamLimit = 10 * 1024 * 1024;
 
         public bool IsContentInGzip => true;
 
@@ -18,26 +20,63 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
         {
             get
             {
-                if (_gzipStream == null)
+                if (_gzippedStream == null)
                 {
                     CreateGZipStream();
                 }
-                return _gzipStream;
+                return _gzippedStream;
             }
         }
 
         private void CreateGZipStream()
         {
             var stream = GetStreamInternal();
-            _gzipStream = new GZipStream(stream, CompressionMode.Compress, true);
+            long streamLength = -1;
+            try { streamLength = stream.Length; }
+            catch { }
+            if (streamLength > InMemoryStreamLimit)
+            {
+                try { _tempFileName = System.IO.Path.GetTempFileName(); }
+                catch { }
+            }
+
+            dynamic gzippedStream;
+            if (_tempFileName == null)
+            {
+                gzippedStream = new MemoryStream();
+            }
+            else
+            {
+                gzippedStream = new FileStream(_tempFileName, FileMode.OpenOrCreate);
+            }
+            
+            var gzipStream = new GZipStream(gzippedStream, CompressionMode.Compress, true);
+            stream.CopyTo(gzipStream);
+            gzipStream.Flush();
+            gzipStream.Dispose();
+
+            if (_tempFileName != null)
+            {
+                gzippedStream.Flush();
+            }
+
+            gzippedStream.Position = 0;
+            _gzippedStream = gzippedStream;
         }
 
         public virtual async Task ReInitializeStream()
         {
-            _gzipStream?.Dispose();
-            _gzipStream = null;
-            await ReInitializeStreamInternal();
-            CreateGZipStream();
+            _gzippedStream?.Dispose();
+            _gzippedStream = null;
+            if (_tempFileName != null)
+            {
+                _gzippedStream = new FileStream(_tempFileName, FileMode.Open);
+            }
+            else
+            {
+                await ReInitializeStreamInternal();
+                CreateGZipStream();
+            }
         }
 
         protected abstract Stream GetStreamInternal();
@@ -53,8 +92,13 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
             {
                 if (disposing)
                 {
-                    _gzipStream?.Dispose();
-                    _gzipStream = null;
+                    _gzippedStream?.Dispose();
+                    _gzippedStream = null;
+
+                    if (_tempFileName != null)
+                    {
+                        try { System.IO.File.Delete(_tempFileName); _tempFileName = null; } catch { };
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
