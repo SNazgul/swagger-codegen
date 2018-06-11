@@ -1144,7 +1144,7 @@ public class DefaultCodegen {
             datatype = "BigDecimal";
         } else if ((p instanceof ByteArrayProperty) || (p instanceof StringProperty && "byte".equals(p.getFormat()))) {
             datatype = "ByteArray";
-        } else if (p instanceof BinaryProperty) {
+        } else if (p instanceof BinaryProperty || (p instanceof StringProperty && "file".equals(p.getFormat())) ) {
             datatype = "binary";
         } else if (p instanceof FileProperty) {
             datatype = "file";
