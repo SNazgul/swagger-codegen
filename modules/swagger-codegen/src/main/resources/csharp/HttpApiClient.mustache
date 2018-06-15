@@ -82,13 +82,14 @@ namespace {{packageName}}.Client
             HttpClient client = Configuration.ClientPool.AcquireClient();
             InitClientHeader(client, localVarHeaderParams);
             authSrv?.PrepareHttpClient(client);
+            HttpResponseMessage response = null;
             try
             {
                 try
                 {
                     IRepeatRequestStrategy repeatStrategy = null;
 Repeat:
-                    HttpResponseMessage response = await sendAction(client);
+                    response = await sendAction(client);
                     if (checkResponce(response))
                     {
                         if (proccessResponce != null)
@@ -126,6 +127,7 @@ Repeat:
             }
             finally
             {
+                response?.Dispose();
                 Configuration.ClientPool.FreeClient(client);
             }
         }
