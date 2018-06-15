@@ -1,0 +1,10 @@
+using System;
+
+
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
+{
+    public interface IResponceStreamProvider : IDisposable
+    {
+        System.IO.Stream Stream { get; }
+    }
+}

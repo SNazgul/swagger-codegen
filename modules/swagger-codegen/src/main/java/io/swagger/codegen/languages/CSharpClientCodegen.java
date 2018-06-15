@@ -457,6 +457,10 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 generalClientPackageDir, "GZippedStreamProvider.cs"));
         supportingFiles.add(new SupportingFile("JsonObjectGZippedStreamProvidery.mustache",
                 generalClientPackageDir, "JsonObjectGZippedStreamProvidery.cs"));
+        supportingFiles.add(new SupportingFile("IResponceStreamProvider.mustache",
+                generalClientPackageDir, "IResponceStreamProvider.cs"));
+        supportingFiles.add(new SupportingFile("HttpClientResponceStreamProvider.mustache",
+                generalClientPackageDir, "HttpClientResponceStreamProvider.cs"));
 
         //System.setProperty(CodegenConstants.MODELS) !=
 
