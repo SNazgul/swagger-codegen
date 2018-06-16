@@ -2784,6 +2784,14 @@ public class DefaultCodegen {
         }
     }
 
+    public static boolean isDataTypeStream(String dataType) {
+        if (dataType != null) {
+            return dataType.startsWith("System.IO.Stream");
+        } else {
+            return false;
+        }
+    }
+
     public boolean isDataTypeFile(String dataType) {
         if (dataType != null) {
             return dataType.toLowerCase().equals("file");

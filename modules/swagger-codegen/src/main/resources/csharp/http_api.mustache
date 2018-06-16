@@ -39,8 +39,8 @@ namespace {{packageName}}.{{apiPackage}}
         /// <exception cref="Exception">Application exception of any type derived from System.Exception or any exception that 'exceptionFactory' can generate</exception>
         /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
-        {{/allParams}}/// <returns>Task of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}void{{/returnType}}</returns>
-        {{#returnType}}System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
+        {{/allParams}}/// <returns>Task of {{#returnType}}{{^isRetTypeStreamAtGetOp}}{{{returnType}}}{{/isRetTypeStreamAtGetOp}}{{#isRetTypeStreamAtGetOp}}IResponceStreamProvider{{/isRetTypeStreamAtGetOp}}{{/returnType}}{{^returnType}}void{{/returnType}}</returns>
+        {{#returnType}}System.Threading.Tasks.Task<{{^isRetTypeStreamAtGetOp}}{{{returnType}}}{{/isRetTypeStreamAtGetOp}}{{#isRetTypeStreamAtGetOp}}IResponceStreamProvider{{/isRetTypeStreamAtGetOp}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken));
         
         {{#bodyParam}}
         {{#isBodyParamBinaryOrGenerateGZipContent}}
@@ -258,14 +258,15 @@ namespace {{packageName}}.{{apiPackage}}
 
                 {{#returnType}}
                 {{{returnType}}} resultValue = default({{{returnType}}});            
-                Func<HttpResponseMessage, Task> proccessResponce = async (response) =>
+                Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce = async (client, response) =>
                 {
                     // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
                     resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>();
+                    return true;
                 };
                 {{/returnType}}
                 {{^returnType}}
-                Func<HttpResponseMessage, Task> proccessResponce = null;
+                Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce = null;
                 {{/returnType}}
 
 
@@ -290,7 +291,7 @@ namespace {{packageName}}.{{apiPackage}}
                     if ((int)response.StatusCode == {{code}})
                     {
                         return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", "{{message}}");
-        }
+                    }
                     {{/message}}                
                     {{/dataType}}
                     {{/isResponseAnError}}
@@ -390,8 +391,8 @@ namespace {{packageName}}.{{apiPackage}}
         /// <exception cref="Exception">Application exception of any type derived from System.Exception or any exception that 'exceptionFactory' can generate</exception>
         /// <exception cref="TaskCanceledException">If operation has been canceled</exception>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}</param>
-        {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
-        {{#returnType}}public async System.Threading.Tasks.Task<{{{returnType}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
+        {{/allParams}}/// <returns>ApiResponse of {{#returnType}}{{^isRetTypeStreamAtGetOp}}{{{returnType}}}{{/isRetTypeStreamAtGetOp}}{{#isRetTypeStreamAtGetOp}}IResponceStreamProvider{{/isRetTypeStreamAtGetOp}}{{/returnType}}{{^returnType}}Object(void){{/returnType}}</returns>
+        {{#returnType}}public async System.Threading.Tasks.Task<{{^isRetTypeStreamAtGetOp}}{{{returnType}}}{{/isRetTypeStreamAtGetOp}}{{#isRetTypeStreamAtGetOp}}IResponceStreamProvider{{/isRetTypeStreamAtGetOp}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async ({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = null{{/optionalMethodArgument}}{{/required}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#allParams.0}},{{/allParams.0}} CancellationToken cancelToken = default(CancellationToken))
         {
             {{#allParams}}
             {{#required}}
@@ -412,7 +413,7 @@ namespace {{packageName}}.{{apiPackage}}
                 {{/consumes}}
             };
            
-            {{^formParams.0}}            
+            {{^formParams.0}}
             String localVarHttpContentType = this.Configuration.ApiClient.SelectHeaderContentType(localVarHttpContentTypes);
             {{/formParams.0}}
              {{! ------------- FORM REGION ------------- }}
@@ -480,45 +481,45 @@ namespace {{packageName}}.{{apiPackage}}
             
             MultipartFormDataContentBuilder multipartContentBuilder = null;           {{! it is going to be used if body type is multipart/form-data}}
             FormUrlEncodedContentBuilder formUrlEncodedContentBuilder = null;     {{! it is going to be used if body type is application/x-www-form-urlencoded}}
-                if (isContentMultipartFormData || (!isContentMultipartFormData && !isContentFormUrlencoded))
-                {
+            if (isContentMultipartFormData || (!isContentMultipartFormData && !isContentFormUrlencoded))
+            {
                 multipartContentBuilder = new MultipartFormDataContentBuilder();
                 formDataBuilder = multipartContentBuilder;
+            }
+            else
+            {
+                formUrlEncodedContentBuilder = new FormUrlEncodedContentBuilder();
+                formDataBuilder = formUrlEncodedContentBuilder;
+            }
+            {{/formParams.0}}
+            {{#formParams}}
+            if ({{paramName}} != null)
+            {{#isFile}}
+            {
+                if (multipartContentBuilder != null)
+                {
+                    multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
+                }
+            }
+            {{/isFile}}
+            {{^isFile}}
+            {
+                if (multipartContentBuilder != null)
+                {
+                    multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
                 }
                 else
                 {
-                formUrlEncodedContentBuilder = new FormUrlEncodedContentBuilder();
-                formDataBuilder = formUrlEncodedContentBuilder;
-                }
-            {{/formParams.0}}
-            {{#formParams}}
-                if ({{paramName}} != null)
-                {{#isFile}}
-                {
-                if (multipartContentBuilder != null)
-                            {
-                    multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
-                    }
-                }
-                {{/isFile}}
-                {{^isFile}}
-                {
-                if (multipartContentBuilder != null)
-                    {
-                    multipartContentBuilder.AddPart("{{baseName}}", {{paramName}});
-                    }
-                    else
-                    {
-                        {{#isString}}
+                    {{#isString}}
                     formUrlEncodedContentBuilder.AddPart("{{baseName}}", {{paramName}});
-                        {{/isString}}
-                    }
+                    {{/isString}}
                 }
-                {{/isFile}}
+            }
+            {{/isFile}}
             {{/formParams}}
-            {{#formParams.0}}
+            {{#formParams.0}}            
             try 
-                {
+            {
             {{/formParams.0}}
             {{! ---------------------------------------- }}
 
@@ -538,7 +539,7 @@ namespace {{packageName}}.{{apiPackage}}
             {
                 {{#bodyParam}}  {{! if body parameter exists - use it }}
                 {{^isBinary}}   {{! if body parameter type is not the binary type - send it as is}}
-                return client.{{httpMethod}}Async(localVarPath, {{paramName}}, cancelToken);                
+                return client.{{httpMethod}}Async(localVarPath, {{paramName}}, cancelToken);
                 {{/isBinary}}
                 {{#isBinary}}   {{! if body parameter type is the binary type - send it as HttpContent}}                
                 return client.{{httpMethod}}Async(localVarPath, {{paramName}}StreamContent, cancelToken);
@@ -546,22 +547,37 @@ namespace {{packageName}}.{{apiPackage}}
                 {{/bodyParam}}
                 {{^bodyParam}}  {{! if body parameter doesn't exist }}
                 {{^formParams}} {{! and if request parameter type is not the form type (and is not a body param) - with a high probability we already have processed it (for example as query param...), just skip it now }}
-                return client.{{httpMethod}}Async(localVarPath, cancelToken);                
+                {{^isRetTypeStreamAtGetOp}}return client.{{httpMethod}}Async(localVarPath, cancelToken);{{/isRetTypeStreamAtGetOp}}
+                {{#isRetTypeStreamAtGetOp}} {{! currently only 'GET' supports this feature, and therefore HTTP/1.1 specification (sectiona 4.3 https://tools.ietf.org/html/rfc2616#section-4.3, 9.3 https://tools.ietf.org/html/rfc2616#section-9.3) strongly discourages using a body in 'GET' operation, assume that all 'GET' operations don't have a body }}
+                return client.{{httpMethod}}Async(localVarPath, cancelToken, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);{{/isRetTypeStreamAtGetOp}}
                 {{/formParams}}
                 {{#formParams.0}}   {{! if this request is some type of form data }}
                 return client.{{httpMethod}}Async(localVarPath, formDataBuilder.CreateFormData() , cancelToken);{{/formParams.0}}{{/bodyParam}}
             };
 
-            {{#returnType}}
-            {{{returnType}}} resultValue = default({{{returnType}}});            
-            Func<HttpResponseMessage, Task> proccessResponce = async (response) =>
+            {{#returnType}}            
+            {{^isRetTypeStreamAtGetOp}} 
+            {{{returnType}}} resultValue = default({{{returnType}}});
+            {{/isRetTypeStreamAtGetOp}}
+            {{#isRetTypeStreamAtGetOp}} 
+            IResponceStreamProvider resultValue = null;
+            {{/isRetTypeStreamAtGetOp}}
+            Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce = async (client, response) =>
             {
+                {{^isRetTypeStreamAtGetOp}}
                 // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
                 resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>();
+                return true;
+                {{/isRetTypeStreamAtGetOp}}
+                {{#isRetTypeStreamAtGetOp}}
+                var contentStream = await response.Content.ReadAsStreamAsync();
+                resultValue = new HttpClientResponceStreamProvider(client, response, contentStream, this.Configuration.ClientPool);
+                return false;
+                {{/isRetTypeStreamAtGetOp}}
             };
             {{/returnType}}
             {{^returnType}}
-            Func<HttpResponseMessage, Task> proccessResponce = null;
+            Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce = null;
             {{/returnType}}
 
             
@@ -682,7 +698,7 @@ namespace {{packageName}}.{{apiPackage}}
             {{/bodyParam}}
 
         }
-        
+
 
         {{#GenerateGZipContentOperation}}
         {{#bodyParam}}

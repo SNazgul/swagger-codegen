@@ -63,6 +63,7 @@ namespace {{packageName}}.Client
         public IHttpReadableConfiguration Configuration { get; set; }
 
 
+        /// <param name="proccessResponce">if function returns false, it means that the message has not been fully processed and caller is responsible for disposing HttpResponseMessage and calling FreeClient for HttpClient </param>
         /// <exception cref="HttpApiException">Thrown when fails to make API call or when server fails</exception>
         /// <exception cref="HttpServiceException">Thrown when network fails</exception>
         /// <exception cref="Exception">Application exception of any type derived from System.Exception or any exception that 'exceptionFactory' can generate</exception>
@@ -70,7 +71,7 @@ namespace {{packageName}}.Client
         public async Task PerformExchange(
             Func<HttpClient, Task<HttpResponseMessage>> sendAction,
             Func<HttpResponseMessage, bool> checkResponce,
-            Func<HttpResponseMessage, Task> proccessResponce,
+            Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce,
             List<KeyValuePair<String, String>> localVarQueryParams,
             Dictionary<String, String> localVarHeaderParams,
             IAuthService authSrv,
@@ -82,6 +83,7 @@ namespace {{packageName}}.Client
             HttpClient client = Configuration.ClientPool.AcquireClient();
             InitClientHeader(client, localVarHeaderParams);
             authSrv?.PrepareHttpClient(client);
+            bool freeHttpClient = true;
             HttpResponseMessage response = null;
             try
             {
@@ -93,7 +95,7 @@ Repeat:
                     if (checkResponce(response))
                     {
                         if (proccessResponce != null)
-                            await proccessResponce(response);
+                            freeHttpClient = await proccessResponce(client, response);
                     }
                     else
                     {
@@ -127,8 +129,11 @@ Repeat:
             }
             finally
             {
-                response?.Dispose();
-                Configuration.ClientPool.FreeClient(client);
+                if (freeHttpClient)
+                {
+                    response?.Dispose();
+                    Configuration.ClientPool.FreeClient(client);
+                }
             }
         }
 
@@ -396,9 +401,9 @@ Repeat:
         }
 
 
-        public static Task<HttpResponseMessage> GETAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken)
+        public static Task<HttpResponseMessage> GETAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken, HttpCompletionOption httpCompletionOption = HttpCompletionOption.ResponseContentRead)
         {
-	        return httpClient.GetAsync(requestUri, cancellationToken);
+	        return httpClient.GetAsync(requestUri, httpCompletionOption, cancellationToken);
         }
 
         public static Task<HttpResponseMessage> DELETEAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken)

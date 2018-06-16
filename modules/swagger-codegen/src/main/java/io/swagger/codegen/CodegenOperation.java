@@ -131,6 +131,15 @@ public class CodegenOperation {
     }
 
     /**
+     * Check if http method is GET
+     *
+     * @return true if http method is GET, false otherwise
+     */
+    public boolean isHttpMethodGet() {
+        return "GET".equalsIgnoreCase(httpMethod);
+    }
+
+    /**
      * Check if act as Restful create method
      *
      * @return true if act as Restful create method, false otherwise
@@ -202,6 +211,24 @@ public class CodegenOperation {
         if (pathParams.size() != 1) return false;
         String id = pathParams.get(0).baseName;
         return ("/{" + id + "}").equals(pathWithoutBaseName());
+    }
+
+    /**
+     * Check if return type is a Stream
+     *
+     * @return true if path act as member
+     */
+    public boolean isReturnTypeStream() {
+        return DefaultCodegen.isDataTypeStream(returnType);
+    }
+
+    /**
+     * Check if return type is a Stream and http method get
+     *
+     * @return true if path act as member
+     */
+    public boolean isRetTypeStreamAtGetOp() {
+        return isReturnTypeStream() && isHttpMethodGet();
     }
 
     @Override
