@@ -1,7 +1,7 @@
 {{!{{>partial_header}}
 using Newtonsoft.Json.Converters;
 
-namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.Client{{/generalClientClasses}}
+namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses}}{{#generalClientClasses}}{{GeneralClientClassesNamespace}}.GeneralClient{{/generalClientClasses}}
 {
     /// <summary>
     /// Formatter for 'date' swagger formats ss defined by full-date - RFC3339
