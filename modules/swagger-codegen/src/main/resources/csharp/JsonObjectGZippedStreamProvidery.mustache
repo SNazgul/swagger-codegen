@@ -27,12 +27,16 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
             {
                 _jsonRepresentation = new MemoryStream();
                 _streamWriter = new StreamWriter(_jsonRepresentation);
+
                 using (JsonTextWriter jsonWriter = new JsonTextWriter(_streamWriter))
                 {
+                    jsonWriter.CloseOutput = false;
                     JsonSerializer ser = new JsonSerializer();
                     ser.Serialize(jsonWriter, _obj);
                     jsonWriter.Flush();
                 }
+
+                _jsonRepresentation.Position = 0;
             }
 
             return _jsonRepresentation;
