@@ -403,7 +403,7 @@ Repeat:
 
         public static Task<HttpResponseMessage> DELETEAsync(this HttpClient httpClient, string requestUri, CancellationToken cancellationToken)
         {
-	        return httpClient.GetAsync(requestUri, cancellationToken);
+	        return httpClient.DeleteAsync(requestUri, cancellationToken);
         }
 
 
