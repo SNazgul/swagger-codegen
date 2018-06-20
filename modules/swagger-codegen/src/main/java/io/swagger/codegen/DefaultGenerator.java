@@ -712,6 +712,12 @@ public class DefaultGenerator extends AbstractGenerator implements Generator {
             }
         }
 
+        if (System.getProperty(CodegenConstants.DEFAULT_RESPONCE_TREATED_AS_ERROR) == Boolean.TRUE.toString()) {
+            if (!config.vendorExtensions().isEmpty()) {
+                bundle.put("defaultResponseTreatedAsError", config.vendorExtensions());
+            }
+        }
+
         List<CodegenSecurity> authMethods = config.fromSecurity(swagger.getSecurityDefinitions());
         if (authMethods != null && !authMethods.isEmpty()) {
             bundle.put("authMethods", authMethods);

@@ -878,6 +878,10 @@ public class DefaultCodegen {
         cliOptions.add(CliOption.newBoolean(CodegenConstants.VENDOR_EXTENSIONS_IN_SUPPORT_FILES, CodegenConstants
                 .VENDOR_EXTENSIONS_IN_SUPPORT_FILES_DESC).defaultValue(Boolean.FALSE.toString()));
 
+        // default response will be treated as an error
+        cliOptions.add(CliOption.newBoolean(CodegenConstants.DEFAULT_RESPONCE_TREATED_AS_ERROR, CodegenConstants
+                .DEFAULT_RESPONCE_TREATED_AS_ERROR_DESC).defaultValue(Boolean.FALSE.toString()));
+
         // initialize special character mapping
         initalizeSpecialCharacterMapping();
     }
@@ -2154,6 +2158,10 @@ public class DefaultCodegen {
                 CodegenResponse r = fromResponse(entry.getKey(), response);
                 isCodeDefaultFound |= r.isCodeDefault;
                 op.operationContainsAtLeastOneErrorResponce |= r.isResponseAnError();
+                if (r.isCodeDefault && System.getProperty(CodegenConstants.DEFAULT_RESPONCE_TREATED_AS_ERROR) == Boolean.TRUE.toString())
+                {
+                    op.operationContainsAtLeastOneErrorResponce = true;
+                }
                 r.hasMore = true;
                 if (r.baseType != null &&
                         !defaultIncludes.contains(r.baseType) &&

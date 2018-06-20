@@ -141,6 +141,11 @@ public class CSharpClientCodegen extends AbstractCSharpCodegen {
                 GENERATE_GZIP_CONTENT_OPERATION_DESC,
                 Boolean.FALSE);
 
+        addSwitch(CodegenConstants.DEFAULT_RESPONCE_TREATED_AS_ERROR,
+                CodegenConstants.DEFAULT_RESPONCE_TREATED_AS_ERROR_DESC,
+                Boolean.FALSE);
+
+
         // CLI Switches
         addSwitch(CodegenConstants.HIDE_GENERATION_TIMESTAMP,
                 CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC,

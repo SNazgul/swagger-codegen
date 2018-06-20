@@ -235,4 +235,6 @@ public class CodegenConstants {
     public static final String GENERAL_CLIENT_CLASSES_NAMESPACE = "GeneralClientClassesNamespace";
     public static final String GENERAL_CLIENT_CLASSES_NAMESPACE_DESC = "All general client classes will be generated in separated 'GenericClient' folder, all classes will be in the specified namespace.";
 
+    public static final String DEFAULT_RESPONCE_TREATED_AS_ERROR = "defaultResponseTreatedAsError";
+    public static final String DEFAULT_RESPONCE_TREATED_AS_ERROR_DESC = "Default response will be treated as an error.";
 }

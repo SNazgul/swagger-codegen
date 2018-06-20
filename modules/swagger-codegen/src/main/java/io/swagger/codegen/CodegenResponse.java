@@ -29,6 +29,9 @@ public class CodegenResponse {
     }
 
     public boolean isResponseAnError() {
+        if (isCodeDefault && System.getProperty(CodegenConstants.DEFAULT_RESPONCE_TREATED_AS_ERROR) == Boolean.TRUE.toString())
+            return true;
+
         return Integer.parseInt(code) >= 400;
     }
 
