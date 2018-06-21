@@ -16,8 +16,9 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
         ConcurrentStack<HttpClient> _availablePersistentClients;
         Uri _basePath;
         int _persistentConnectionCount;
+        System.Net.DecompressionMethods _decompressionMethod;
 
-        public LimitedPersistentConnectionHttpClientPool(int persistentConnectionCount, Uri basePath, IHttpMessageHandlerProvider messageHandlerProvider = null)
+        public LimitedPersistentConnectionHttpClientPool(int persistentConnectionCount, Uri basePath, System.Net.DecompressionMethods decompres = System.Net.DecompressionMethods.None, IHttpMessageHandlerProvider messageHandlerProvider = null)
         {
             _messageHandlerProvider = messageHandlerProvider;
             if (_messageHandlerProvider != null)
@@ -29,6 +30,7 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
             CreatePersistentConnections(_persistentConnectionCount);
             _acquiredPersistentClients = new List<HttpClient>();
             _acquiredNonPersistentClients = new List<HttpClient>();
+            _decompressionMethod = decompres;
         }
 
         public HttpClient AcquireClient()
@@ -38,9 +40,7 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
             HttpClient resClient = null;
             if (!_availablePersistentClients.TryPop(out resClient))
             {
-                var custMsgHandler = _messageHandlerProvider?.CustomMessageHandler;
-                resClient = custMsgHandler != null ? new HttpClient(custMsgHandler) : new HttpClient();
-                resClient.BaseAddress = _basePath;
+                resClient = CreateConnection();
                 resClient.DefaultRequestHeaders.Connection.Add("keep-alive");
                 lock(_acquiredNonPersistentClients)
                 {
@@ -136,15 +136,42 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
 
         void CreatePersistentConnections(int count)
         {
-            var custMsgHandler = _messageHandlerProvider?.CustomMessageHandler;
             for(int i = 0; i < count; ++i)
             {
-                var httpClient = custMsgHandler != null ? new HttpClient(custMsgHandler) : new HttpClient();
-                httpClient.BaseAddress = _basePath;
+                var httpClient = CreateConnection();
+                httpClient.DefaultRequestHeaders.Connection.Add("keep-alive");
                 _availablePersistentClients.Push(httpClient);
             }
         }
       
+        HttpClient CreateConnection()
+        {
+            HttpClient resClient = null;
+
+            var custMsgHandler = _messageHandlerProvider?.CustomMessageHandler;
+            HttpClientHandler clientHandler = null;
+            if (_decompressionMethod != System.Net.DecompressionMethods.None)
+            {
+                clientHandler = new HttpClientHandler() { AutomaticDecompression = _decompressionMethod };
+            }
+            if (custMsgHandler != null)
+            {
+                if (clientHandler != null)
+                    custMsgHandler.InnerHandler = clientHandler;
+                resClient = new HttpClient(custMsgHandler);
+            }
+            else
+            {
+                if (clientHandler == null)
+                    resClient = new HttpClient();
+                else
+                    resClient = new HttpClient(clientHandler);
+            }
+            resClient.BaseAddress = _basePath;
+
+            return resClient;
+        }
+
 
         #region IDisposable Support
         private bool _disposedValue = false; // To detect redundant calls

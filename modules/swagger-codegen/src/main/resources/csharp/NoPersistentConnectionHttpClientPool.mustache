@@ -10,23 +10,38 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
     {
         IHttpMessageHandlerProvider _messageHandlerProvider;
         List<HttpClient> _acquiredClients;
+        System.Net.DecompressionMethods _decompressionMethod;
 
-
-        public NoPersistentConnectionHttpClientPool(Uri basePath, IHttpMessageHandlerProvider messageHandlerProvider = null)
+        public NoPersistentConnectionHttpClientPool(Uri basePath, System.Net.DecompressionMethods decompres = System.Net.DecompressionMethods.None, IHttpMessageHandlerProvider messageHandlerProvider = null)
         {
             _messageHandlerProvider = messageHandlerProvider;
             _acquiredClients = new List<HttpClient>();
             BasePath = basePath;
+            _decompressionMethod = decompres;
         }
 
         public HttpClient AcquireClient()
         {
             var customMessageHandler = _messageHandlerProvider?.CustomMessageHandler;
+            HttpClientHandler clientHandler = null;
+            if (_decompressionMethod != System.Net.DecompressionMethods.None)
+            {
+                clientHandler = new HttpClientHandler() { AutomaticDecompression = _decompressionMethod };
+            }
             HttpClient client = null;
             if (customMessageHandler != null)
+            {
+                if (clientHandler != null)
+                    customMessageHandler.InnerHandler = clientHandler;
                 client = new HttpClient(customMessageHandler);
+            }
             else
+            {
+                if (clientHandler == null)
                 client =  new HttpClient();
+                else
+                    client = new HttpClient(clientHandler);
+            }
 
             lock(_acquiredClients)
                 _acquiredClients.Add(client);

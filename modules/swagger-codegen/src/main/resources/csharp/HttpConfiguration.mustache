@@ -153,7 +153,7 @@ namespace {{packageName}}.Client
             // https://stackoverflow.com/questions/23438416/why-is-httpclient-baseaddress-not-working
             BasePath = "{{#lambda.add_trailing_forwardslash}}{{{basePath}}}{{/lambda.add_trailing_forwardslash}}";
             DefaultHeader = new {{^net35}}Concurrent{{/net35}}Dictionary<string, string>();
-            _clientPool = new NoPersistentConnectionHttpClientPool(new Uri(BasePath), this);
+            _clientPool = new NoPersistentConnectionHttpClientPool(new Uri(BasePath), System.Net.DecompressionMethods.None, this);
         }
 
         /// <summary>
@@ -358,10 +358,10 @@ namespace {{packageName}}.Client
         /// <value>accept versoin.</value>
         public string AcceptVersion { get; set; }
 
-        public event EventHandler<HttpMessageHandler> MessageHandlerChanged;
+        public event EventHandler<DelegatingHandler> MessageHandlerChanged;
         
-        HttpMessageHandler _customMsgHandler;
-        public HttpMessageHandler CustomMessageHandler
+        DelegatingHandler _customMsgHandler;
+        public DelegatingHandler CustomMessageHandler
         {
             get
             {

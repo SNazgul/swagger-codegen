@@ -7,8 +7,8 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
 {
     public interface IHttpMessageHandlerProvider
     {
-        event EventHandler<HttpMessageHandler> MessageHandlerChanged;
+        event EventHandler<DelegatingHandler> MessageHandlerChanged;
         
-        HttpMessageHandler CustomMessageHandler { get; }
+        DelegatingHandler CustomMessageHandler { get; }
     }
 }
