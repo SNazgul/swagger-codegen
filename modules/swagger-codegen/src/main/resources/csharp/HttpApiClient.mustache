@@ -149,6 +149,9 @@ Repeat:
         public const string StandartMultipartFormData = "multipart/form-data";
         public const string NonStandartFormEncodedData = "application/x-www-form-urlencoded";
 
+        // The Regex class itself is thread safe and immutable (read-only). 
+        // https://docs.microsoft.com/en-us/dotnet/standard/base-types/thread-safety-in-regular-expressions
+        static Regex _jsonRegex = new Regex("(?i)^(application/json|[^;/ \t]+/[^;/ \t]+[+]json)[ \t]*(;.*)?$");
 
         /// <summary>
         ///Check if the given MIME is a JSON MIME.
@@ -160,10 +163,9 @@ Repeat:
         /// </summary>
         /// <param name="mime">MIME</param>
         /// <returns>Returns True if MIME type is json.</returns>
-        public bool IsJsonMime(String mime)
+        public static bool IsJsonMime(String mime)
         {
-            var jsonRegex = new Regex("(?i)^(application/json|[^;/ \t]+/[^;/ \t]+[+]json)[ \t]*(;.*)?$");
-            return mime != null && (jsonRegex.IsMatch(mime) || mime.Equals("application/json-patch+json"));
+            return mime != null && (_jsonRegex.IsMatch(mime) || mime.Equals("application/json-patch+json"));
         }
 
         /// <summary>
@@ -194,17 +196,26 @@ Repeat:
             if (contentTypes.Length == 0)
                 return "application/json";
 
+            String formType = null;
+            String binaryType = null;
+
             foreach (var contentType in contentTypes)
             {
                 if (IsJsonMime(contentType.ToLower()))
                     return contentType;
+
+                if (formType == null && IsFormMime(contentType))
+                    formType = contentType;
+
+                if (binaryType == null && contentType.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase))
+                    binaryType = contentType;
             }
 
-            foreach (var contentType in contentTypes)
-            {
-                if (IsFormMime(contentType))
-                    return contentType;
-            }
+            if (formType != null)
+                return formType;
+
+            if (binaryType != null)
+                return binaryType;
 
             throw new HttpApiException(400, "Unsupported content type");    // only unsupported content types specified in 'consumes'
         }
@@ -221,14 +232,26 @@ Repeat:
             if (accepts.Length == 0)
                 return null;
 
-            if (accepts.Contains("application/json", StringComparer.OrdinalIgnoreCase))
-                return "application/json";
+            String formType = null;
+            String binaryType = null;
 
-            if (accepts.Contains(StandartMultipartFormData, StringComparer.OrdinalIgnoreCase))
-                return StandartMultipartFormData;
+            foreach (var acceptType in accepts)
+            {
+                if (acceptType.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+                    return acceptType;
 
-            if (accepts.Contains(NonStandartFormEncodedData, StringComparer.OrdinalIgnoreCase))
-                return NonStandartFormEncodedData;
+                if (formType == null && IsFormMime(acceptType))
+                    formType = acceptType;
+
+                if (binaryType == null && acceptType.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase))
+                    binaryType = acceptType;
+            }
+
+            if (formType != null)
+                return formType;
+
+            if (binaryType != null)
+                return binaryType;
 
              throw new HttpApiException(400, "Unsupported content type");    // only unsupported content types specified in 'produces'
         }
