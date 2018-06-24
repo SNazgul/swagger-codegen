@@ -260,8 +260,7 @@ namespace {{packageName}}.{{apiPackage}}
                 {{{returnType}}} resultValue = default({{{returnType}}});            
                 Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce = async (client, response) =>
                 {
-                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                    resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>();
+                    resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>(cancelToken);
                     return true;
                 };
                 {{/returnType}}
@@ -282,8 +281,7 @@ namespace {{packageName}}.{{apiPackage}}
                     {{#dataType}}
                     if ((int)response.StatusCode == {{code}})
                     {
-                        // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                        var contentWithError{{code}} = await response.Content.ReadAsAsync<{{dataType}}>();
+                        var contentWithError{{code}} = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
                         return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError{{code}});
                     }
                     {{/dataType}}
@@ -306,8 +304,7 @@ namespace {{packageName}}.{{apiPackage}}
                     {{#responses}}
                     {{#isCodeDefault}}
                     {{#dataType}}
-                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
                     return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
                     {{/dataType}}
                     {{^dataType}}
@@ -328,8 +325,7 @@ namespace {{packageName}}.{{apiPackage}}
                 {{#dataType}}
                 customEF = async (response) => 
                 {
-                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
                     return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);  
                 };
                 {{/dataType}}
@@ -585,8 +581,7 @@ namespace {{packageName}}.{{apiPackage}}
             Func<HttpClient, HttpResponseMessage, Task<bool>> proccessResponce = async (client, response) =>
             {
                 {{^isRetTypeStreamAtGetOp}}
-                // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>();
+                resultValue = await response.Content.ReadAsAsync<{{{returnType}}}>(cancelToken);
                 return true;
                 {{/isRetTypeStreamAtGetOp}}
                 {{#isRetTypeStreamAtGetOp}}
@@ -613,8 +608,7 @@ namespace {{packageName}}.{{apiPackage}}
                 {{#dataType}}
                 if ((int)response.StatusCode == {{code}})
                 {
-                    // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                    var contentWithError{{code}} = await response.Content.ReadAsAsync<{{dataType}}>();
+                    var contentWithError{{code}} = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
                     return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError{{code}});
                 }
                 {{/dataType}}
@@ -636,8 +630,7 @@ namespace {{packageName}}.{{apiPackage}}
                 {{#responses}}
                 {{#isCodeDefault}}
                 {{#dataType}}
-                // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
                 return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError); 
                 {{/dataType}}
                 {{^dataType}}
@@ -658,8 +651,7 @@ namespace {{packageName}}.{{apiPackage}}
             {{#dataType}}
             customEF = async (response) => 
             {
-                // TODO: need to make cancelable, ReadAsAsync is not cancelable by default
-                var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>();
+                var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
                 return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);  
             };
             {{/dataType}}
