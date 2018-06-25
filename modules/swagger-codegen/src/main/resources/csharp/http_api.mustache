@@ -304,8 +304,15 @@ namespace {{packageName}}.{{apiPackage}}
                     {{#responses}}
                     {{#isCodeDefault}}
                     {{#dataType}}
-                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
-                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                    if (HttpApiClient.IsJsonMime(response.Content.Headers.ContentType.MediaType.ToLower()))
+                    {
+                        var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
+                        return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                    }
+                    else
+                    {
+                        return await ExceptionFactory(response);
+                    }
                     {{/dataType}}
                     {{^dataType}}
                     {{#message}}
@@ -325,8 +332,15 @@ namespace {{packageName}}.{{apiPackage}}
                 {{#dataType}}
                 customEF = async (response) => 
                 {
-                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
-                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);  
+                    if (HttpApiClient.IsJsonMime(response.Content.Headers.ContentType.MediaType.ToLower()))
+                    {
+                        var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
+                        return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                    }
+                    else
+                    {
+                        return await ExceptionFactory(response);
+                    }
                 };
                 {{/dataType}}
                 {{/isCodeDefault}}
@@ -630,8 +644,15 @@ namespace {{packageName}}.{{apiPackage}}
                 {{#responses}}
                 {{#isCodeDefault}}
                 {{#dataType}}
-                var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
-                return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError); 
+                if (HttpApiClient.IsJsonMime(response.Content.Headers.ContentType.MediaType.ToLower()))
+                {
+                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
+                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                }
+                else
+                {
+                    return await ExceptionFactory(response);
+                }
                 {{/dataType}}
                 {{^dataType}}
                 {{#message}}
@@ -651,8 +672,15 @@ namespace {{packageName}}.{{apiPackage}}
             {{#dataType}}
             customEF = async (response) => 
             {
-                var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
-                return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);  
+                if (HttpApiClient.IsJsonMime(response.Content.Headers.ContentType.MediaType.ToLower()))
+                {
+                    var contentWithError = await response.Content.ReadAsAsync<{{dataType}}>(cancelToken);
+                    return new HttpApiException((int)response.StatusCode, $"Error calling {response.RequestMessage?.RequestUri}. Status {response.StatusCode}", contentWithError);
+                }
+                else
+                {
+                    return await ExceptionFactory(response);
+                }
             };
             {{/dataType}}
             {{/isCodeDefault}}
