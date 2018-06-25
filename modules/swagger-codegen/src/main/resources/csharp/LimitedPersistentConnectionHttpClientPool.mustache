@@ -25,12 +25,12 @@ namespace {{^generalClientClasses}}{{packageName}}.Client{{/generalClientClasses
                 _messageHandlerProvider.MessageHandlerChanged += OnMessageHandlerChanged;
             _basePath = basePath;
             _persistentConnectionCount = persistentConnectionCount;
+            _decompressionMethod = decompres;
 
             _availablePersistentClients = new ConcurrentStack<HttpClient>();
             CreatePersistentConnections(_persistentConnectionCount);
             _acquiredPersistentClients = new List<HttpClient>();
             _acquiredNonPersistentClients = new List<HttpClient>();
-            _decompressionMethod = decompres;
         }
 
         public HttpClient AcquireClient()
