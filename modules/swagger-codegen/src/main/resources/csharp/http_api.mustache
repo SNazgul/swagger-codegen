@@ -247,7 +247,7 @@ namespace {{packageName}}.{{apiPackage}}
             StreamContent {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}}.Stream);
              {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Type", contentType);
             if ({{#bodyParam}}{{paramName}}{{/bodyParam}}.IsContentInGzip)
-                {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Encoding", "gzip, deflate");
+                {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Encoding", "gzip");
 
             try {
 
@@ -393,7 +393,7 @@ namespace {{packageName}}.{{apiPackage}}
                         await {{#bodyParam}}{{paramName}}{{/bodyParam}}.ReInitializeStream();
                         {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent = new StreamContent({{#bodyParam}}{{paramName}}{{/bodyParam}}.Stream);
                         if ({{#bodyParam}}{{paramName}}{{/bodyParam}}.IsContentInGzip)
-                            {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Encoding", "gzip, deflate");
+                            {{#bodyParam}}{{paramName}}{{/bodyParam}}StreamContent.Headers.Add("Content-Encoding", "gzip");
                     }
                 );
                 
